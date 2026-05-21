@@ -7,3 +7,9 @@ coverage/
 .idea/
 .DS_Store
 dist/
+document/
+.agent/
+.claude/
+.codex/
+.github/
+openspec/
