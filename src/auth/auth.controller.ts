@@ -8,11 +8,14 @@ import {
   Delete,
   UsePipes,
   ValidationPipe,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UpdateAuthDto } from './dto/update-auth.dto';
-import { StudentsService } from 'src/students/students.service';
 import { CreateStudentDto } from 'src/students/dto/create-student.dto';
+import { LocalAuthGuard } from 'src/guards/local.auth.guard';
+import { StudentsService } from 'src/students/students.service';
 
 @Controller('auth')
 export class AuthController {
@@ -26,7 +29,11 @@ export class AuthController {
   register(@Body() userData: CreateStudentDto) {
     return this.studentsService.createUser(userData);
   }
-
+  @UseGuards(LocalAuthGuard)
+  @Post('/login')
+  login(@Request() req: any) {
+    return this.authService.login(req.user);
+  }
   @Get()
   findAll() {
     return this.authService.findAll();

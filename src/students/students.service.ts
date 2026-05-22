@@ -29,9 +29,7 @@ export class StudentsService {
     }
 
     //Kiểm tra Email đã tồn tại chưa
-    const existingByEmail = await this.studentRepository.findOne({
-      where: { email: userData.email },
-    });
+    const existingByEmail = await this.findByEmail(userData.email);
     if (existingByEmail) {
       throw new ConflictException({
         success: false,
@@ -54,6 +52,16 @@ export class StudentsService {
     });
 
     return await this.studentRepository.save(student);
+  }
+  async validate(email: string, password: string) {
+    const student = await this.findByEmail(email);
+    if (student && (await bcrypt.compare(password, student.password_hash)))
+      return student;
+    else return null;
+  }
+  async findByEmail(email: string) {
+    const student = await this.studentRepository.findOneBy({ email });
+    return student;
   }
 
   findAll() {
