@@ -16,7 +16,7 @@ import { UpdateAuthDto } from './dto/update-auth.dto';
 import { CreateStudentDto } from 'src/students/dto/create-student.dto';
 import { LocalAuthGuard } from 'src/guards/local.auth.guard';
 import { StudentsService } from 'src/students/students.service';
-
+import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -34,7 +34,8 @@ export class AuthController {
   login(@Request() req: any) {
     return this.authService.login(req.user);
   }
-  @Get()
+  @UseGuards(JwtAuthGuard)
+  @Get('/profile')
   findAll() {
     return this.authService.findAll();
   }
