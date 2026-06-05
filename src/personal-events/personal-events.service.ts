@@ -11,7 +11,8 @@ export class PersonalEventsService {
   constructor(
     @InjectRepository(PersonalEvent)
     private readonly personalEventRepository: Repository<PersonalEvent>,
-    private readonly studentRepository: Repository<Student>
+    @InjectRepository(Student)
+    private readonly studentRepository: Repository<Student>,
   ) { }
 
   async create(createPersonalEventDto: CreatePersonalEventDto) {

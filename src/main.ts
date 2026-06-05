@@ -8,10 +8,11 @@ async function bootstrap() {
     .setTitle('My API')
     .setDescription('API description')
     .setVersion('1.0')
+    .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, options);
   SwaggerModule.setup('api', app, document);
-
+  app.enableCors();
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();
