@@ -1,40 +1,40 @@
-import { Injectable, Post } from '@nestjs/common';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
-import { StudentsService } from 'src/students/students.service';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { v4 as uuidv4 } from 'uuid';
+import { StudentsService } from 'src/students/students.service';
+import { BlacklistService } from './blacklist.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly studentsService: StudentsService,
     private readonly jwtService: JwtService,
+    private readonly blacklistService: BlacklistService,
   ) {}
 
-  create(createAuthDto: CreateAuthDto) {
-    return 'This action adds a new auth';
-  }
-
-  findAll() {
-    return `This action returns all auth`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
-  }
-
-  update(id: number, updateAuthDto: UpdateAuthDto) {
-    return `This action updates a #${id} auth`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
-  }
-
   login(user: any) {
-    const payload = { username: user.email, sub: user.student_id };
-    return {
-      access_token: this.jwtService.sign(payload),
+    const jti = uuidv4();
+
+    const payload = {
+      sub: user.student_id,
+      email: user.email,
+      role: user.role,
+      jti,
     };
+
+    const access_token = this.jwtService.sign(payload);
+
+    const decoded = this.jwtService.decode(access_token) as { exp: number };
+    const expiresAt = new Date(decoded.exp * 1000);
+
+    return {
+      access_token,
+      expires_at: expiresAt.toISOString(),
+      token_type: 'Bearer',
+    };
+  }
+
+  async logout(jti: string, studentId: string, expiresAt: Date): Promise<void> {
+    await this.blacklistService.add(jti, studentId, expiresAt);
   }
 }

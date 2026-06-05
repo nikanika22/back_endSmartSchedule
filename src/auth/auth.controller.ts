@@ -1,57 +1,78 @@
 import {
   Controller,
   Post,
-  Body,
   Get,
-  Patch,
-  Param,
-  Delete,
+  Body,
+  Request,
+  UseGuards,
   UsePipes,
   ValidationPipe,
-  UseGuards,
-  Request,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
-import { UpdateAuthDto } from './dto/update-auth.dto';
-import { CreateStudentDto } from 'src/students/dto/create-student.dto';
-import { LocalAuthGuard } from 'src/guards/local.auth.guard';
 import { StudentsService } from 'src/students/students.service';
+import { LocalAuthGuard } from 'src/guards/local.auth.guard';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
+import { CreateStudentDto } from 'src/students/dto/create-student.dto';
+import { ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { LoginDTO } from './dto/login.dto';
+
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly studentsService: StudentsService,
+    private readonly jwtService: JwtService,
   ) {}
 
-  @Post('/register')
+  @Post('register')
   @UsePipes(new ValidationPipe({ whitelist: true }))
   register(@Body() userData: CreateStudentDto) {
     return this.studentsService.createUser(userData);
   }
+
   @UseGuards(LocalAuthGuard)
-  @Post('/login')
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  @ApiBody({ type: LoginDTO })
   login(@Request() req: any) {
     return this.authService.login(req.user);
   }
+
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @Get('/profile')
-  findAll() {
-    return this.authService.findAll();
-  }
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  async logout(@Request() req: any) {
+    const { jti, student_id } = req.user;
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.authService.findOne(+id);
-  }
+    // Lấy raw token để decode exp
+    const rawToken = req.headers.authorization?.split(' ')[1];
+    const decoded = this.jwtService.decode(rawToken) as { exp: number } | null;
+    const expiresAt = decoded
+      ? new Date(decoded.exp * 1000)
+      : new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAuthDto: UpdateAuthDto) {
-    return this.authService.update(+id, updateAuthDto);
-  }
+    await this.authService.logout(jti, student_id, expiresAt);
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.authService.remove(+id);
+    return {
+      success: true,
+      message: 'Đăng xuất thành công.',
+    };
+  }
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  me(@Request() req: any) {
+    return {
+      success: true,
+      data: {
+        student_id: req.user.student_id,
+        email: req.user.email,
+        role: req.user.role,
+      },
+    };
   }
 }
