@@ -1,26 +1,87 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
-import { UpdateEnrollmentDto } from './dto/update-enrollment.dto';
+import { Enrollment } from './entities/enrollment.entity';
+import { Course } from '../courses/entities/course.entity';
+import { Semester } from '../semesters/entities/semester.entity';
 
 @Injectable()
 export class EnrollmentsService {
-  create(createEnrollmentDto: CreateEnrollmentDto) {
-    return 'This action adds a new enrollment';
-  }
+  constructor(
+    @InjectRepository(Enrollment)
+    private readonly enrollmentRepository: Repository<Enrollment>,
+    @InjectRepository(Course)
+    private readonly courseRepository: Repository<Course>,
+    @InjectRepository(Semester)
+    private readonly semesterRepository: Repository<Semester>,
+  ) {}
 
-  findAll() {
-    return `This action returns all enrollments`;
-  }
+  async create(student_id: string, createEnrollmentDto: CreateEnrollmentDto) {
+    const { course_id, semester_id } = createEnrollmentDto;
 
-  findOne(id: number) {
-    return `This action returns a #${id} enrollment`;
-  }
+    // 1. Validate course tồn tại
+    const course = await this.courseRepository.findOne({
+      where: { course_id },
+    });
+    if (!course) {
+      throw new NotFoundException({
+        success: false,
+        error: {
+          code: 'ENROLLMENT_COURSE_NOT_FOUND',
+          message: 'Môn học không tồn tại.',
+        },
+      });
+    }
 
-  update(id: number, updateEnrollmentDto: UpdateEnrollmentDto) {
-    return `This action updates a #${id} enrollment`;
-  }
+    // 2. Validate semester tồn tại
+    const semester = await this.semesterRepository.findOne({
+      where: { semester_id },
+    });
+    if (!semester) {
+      throw new NotFoundException({
+        success: false,
+        error: {
+          code: 'ENROLLMENT_SEMESTER_NOT_FOUND',
+          message: 'Học kỳ không tồn tại.',
+        },
+      });
+    }
 
-  remove(id: number) {
-    return `This action removes a #${id} enrollment`;
+    // 3. Check duplicate
+    const existing = await this.enrollmentRepository.findOne({
+      where: { student_id, course_id, semester_id },
+    });
+    if (existing) {
+      throw new ConflictException({
+        success: false,
+        error: {
+          code: 'ENROLLMENT_ALREADY_EXISTS',
+          message: 'Bạn đã đăng ký môn học này trong học kỳ này rồi.',
+        },
+      });
+    }
+
+    // 4. Save
+    const enrollment = this.enrollmentRepository.create({
+      student_id,
+      course_id,
+      semester_id,
+      enrolled_at: new Date(),
+    });
+
+    const saved = await this.enrollmentRepository.save(enrollment);
+
+    // 5. Return (bỏ relations)
+    return {
+      student_id: saved.student_id,
+      course_id: saved.course_id,
+      semester_id: saved.semester_id,
+      enrolled_at: saved.enrolled_at,
+    };
   }
 }

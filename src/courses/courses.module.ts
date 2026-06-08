@@ -6,12 +6,12 @@ import { CoursesService } from './courses.service';
 import { Course } from './entities/course.entity';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([Course]),
-        ClassesModule, // import để dùng ClassesService trong CoursesController
-    ],
-    controllers: [CoursesController],
-    providers: [CoursesService],
-    exports: [CoursesService],
+  imports: [
+    TypeOrmModule.forFeature([Course]),
+    ClassesModule, // import để dùng ClassesService trong CoursesController
+  ],
+  controllers: [CoursesController],
+  providers: [CoursesService],
+  exports: [CoursesService, TypeOrmModule],
 })
 export class CoursesModule {}
