@@ -8,6 +8,8 @@ import { ConfigModule } from '@nestjs/config';
 import { PersonalEventsModule } from './personal-events/personal-events.module';
 import { CoursesModule } from './courses/courses.module';
 import { ClassesModule } from './classes/classes.module';
+import { SemestersModule } from './semesters/semesters.module';
+import { EnrollmentsModule } from './enrollments/enrollments.module';
 
 @Module({
   imports: [
@@ -29,6 +31,8 @@ import { ClassesModule } from './classes/classes.module';
     PersonalEventsModule,
     CoursesModule,
     ClassesModule,
+    SemestersModule,
+    EnrollmentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
