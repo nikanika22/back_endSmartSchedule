@@ -1,10 +1,21 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { LessThan, MoreThan, Not, Repository } from 'typeorm';
+import { Student } from '../students/entities/student.entity';
 import { CreatePersonalEventDto } from './dto/create-personal-event.dto';
 import { UpdatePersonalEventDto } from './dto/update-personal-event.dto';
-import { InjectRepository } from '@nestjs/typeorm';
 import { PersonalEvent } from './entities/personal-event.entity';
-import { Repository } from 'typeorm';
-import { Student } from 'src/students/entities/student.entity';
+
+type EventTimeRange = Pick<
+  PersonalEvent,
+  'start_time' | 'end_time'
+> & {
+  day_of_week?: number | null;
+};
 
 @Injectable()
 export class PersonalEventsService {
@@ -15,51 +26,110 @@ export class PersonalEventsService {
     private readonly studentRepository: Repository<Student>,
   ) { }
 
-  async create(createPersonalEventDto: CreatePersonalEventDto) {
-    const student = this.studentRepository.findOne({
-      where: { student_id: createPersonalEventDto.student_id },
+  async create(
+    student_id: string,
+    createPersonalEventDto: CreatePersonalEventDto,
+  ): Promise<PersonalEvent> {
+    const student = await this.studentRepository.findOne({
+      where: { student_id },
     });
 
-    if (student == null) {
+    if (!student) {
       throw new NotFoundException({
         success: false,
         error: {
           code: 'STUDENT_NOT_EXISTS',
-          message: 'Không tìm thấy sinh viên với id:' + createPersonalEventDto.student_id,
+          message: `Không tìm thấy sinh viên với id: ${student_id}`,
         },
-      })
+      });
     }
 
-    const personal_event = this.personalEventRepository.create({
-      student_id: createPersonalEventDto.student_id,
+    await this.checkOverlap(student_id, createPersonalEventDto);
+
+    const personalEvent = this.personalEventRepository.create({
+      student_id,
       title: createPersonalEventDto.title,
       day_of_week: createPersonalEventDto.day_of_week,
       start_time: createPersonalEventDto.start_time,
       end_time: createPersonalEventDto.end_time,
       is_recurring: createPersonalEventDto.is_recurring,
-      note: createPersonalEventDto.note
+      note: createPersonalEventDto.note,
     });
 
-    return await this.personalEventRepository.save(personal_event);
+    return this.personalEventRepository.save(personalEvent);
   }
 
-  findAll() {
-    return this.personalEventRepository.find();
+  findAll(student_id: string): Promise<PersonalEvent[]> {
+    return this.personalEventRepository.find({
+      where: { student_id },
+      order: { day_of_week: 'ASC', start_time: 'ASC' },
+    });
   }
 
-  findOne(id: number) {
-    return this.personalEventRepository.findOneByOrFail({ id } as any);
-  }
+  async findOne(student_id: string, id: number): Promise<PersonalEvent> {
+    const event = await this.personalEventRepository.findOne({
+      where: { event_id: id, student_id },
+    });
 
-  async update(id: number, updatePersonalEventDto: UpdatePersonalEventDto) {
-    const p = await this.personalEventRepository.findOneByOrFail({ id } as any);
-    if (p != null) {
-      return this.personalEventRepository.update(id, updatePersonalEventDto);
+    if (!event) {
+      throw new NotFoundException({
+        success: false,
+        error: {
+          code: 'PERSONAL_EVENT_NOT_FOUND',
+          message: `Không tìm thấy lịch bận với id: ${id}`,
+        },
+      });
     }
-    return null;
+
+    return event;
   }
 
-  remove(id: number) {
-    return this.personalEventRepository.delete(id);
+  async update(
+    student_id: string,
+    id: number,
+    updatePersonalEventDto: UpdatePersonalEventDto,
+  ): Promise<PersonalEvent> {
+    const event = await this.findOne(student_id, id);
+    const nextEvent = { ...event, ...updatePersonalEventDto };
+
+    await this.checkOverlap(student_id, nextEvent, id);
+
+    Object.assign(event, updatePersonalEventDto);
+    return this.personalEventRepository.save(event);
+  }
+
+  async remove(student_id: string, id: number): Promise<void> {
+    const event = await this.findOne(student_id, id);
+    await this.personalEventRepository.remove(event);
+  }
+
+  private async checkOverlap(
+    student_id: string,
+    event: EventTimeRange,
+    excludeEventId?: number,
+  ): Promise<void> {
+    if (event.day_of_week == null) {
+      return;
+    }
+
+    const overlapping = await this.personalEventRepository.findOne({
+      where: {
+        student_id,
+        day_of_week: event.day_of_week,
+        start_time: LessThan(event.end_time),
+        end_time: MoreThan(event.start_time),
+        ...(excludeEventId ? { event_id: Not(excludeEventId) } : {}),
+      },
+    });
+
+    if (overlapping) {
+      throw new ConflictException({
+        success: false,
+        error: {
+          code: 'PERSONAL_EVENT_TIME_OVERLAP',
+          message: 'Lịch bận bị trùng với một lịch bận khác.',
+        },
+      });
+    }
   }
 }

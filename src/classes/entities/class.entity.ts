@@ -1,5 +1,5 @@
 import { Course } from '../../courses/entities/course.entity';
-import { Semester } from './semester.entity';
+import { Semester } from '../../semesters/entities/semester.entity';
 import {
     Check,
     Column,

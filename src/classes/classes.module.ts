@@ -4,7 +4,7 @@ import { Course } from '../courses/entities/course.entity';
 import { ClassesController } from './classes.controller';
 import { ClassesService } from './classes.service';
 import { ClassEntity } from './entities/class.entity';
-import { Semester } from './entities/semester.entity';
+import { Semester } from '../semesters/entities/semester.entity';
 
 @Module({
     imports: [TypeOrmModule.forFeature([ClassEntity, Semester, Course])],

@@ -13,11 +13,6 @@ import {
 export class CreatePersonalEventDto {
     @IsString()
     @IsNotEmpty()
-    @MaxLength(20)
-    student_id!: string;
-
-    @IsString()
-    @IsNotEmpty()
     @MaxLength(200)
     title!: string;
 

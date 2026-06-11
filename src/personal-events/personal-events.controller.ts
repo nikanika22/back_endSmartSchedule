@@ -1,34 +1,62 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { PersonalEventsService } from './personal-events.service';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CreatePersonalEventDto } from './dto/create-personal-event.dto';
 import { UpdatePersonalEventDto } from './dto/update-personal-event.dto';
+import { PersonalEventsService } from './personal-events.service';
 
+@UseGuards(JwtAuthGuard)
 @Controller('personal-events')
 export class PersonalEventsController {
   constructor(private readonly personalEventsService: PersonalEventsService) {}
 
   @Post()
-  create(@Body() createPersonalEventDto: CreatePersonalEventDto) {
-    return this.personalEventsService.create(createPersonalEventDto);
+  create(
+    @Request() req: any,
+    @Body() createPersonalEventDto: CreatePersonalEventDto,
+  ) {
+    const student_id = req.user.student_id;
+    return this.personalEventsService.create(student_id, createPersonalEventDto);
   }
 
   @Get()
-  findAll() {
-    return this.personalEventsService.findAll();
+  findAll(@Request() req: any) {
+    const student_id = req.user.student_id;
+    return this.personalEventsService.findAll(student_id);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.personalEventsService.findOne(+id);
+  findOne(@Request() req: any, @Param('id') id: string) {
+    const student_id = req.user.student_id;
+    return this.personalEventsService.findOne(student_id, +id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePersonalEventDto: UpdatePersonalEventDto) {
-    return this.personalEventsService.update(+id, updatePersonalEventDto);
+  update(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() updatePersonalEventDto: UpdatePersonalEventDto,
+  ) {
+    const student_id = req.user.student_id;
+    return this.personalEventsService.update(
+      student_id,
+      +id,
+      updatePersonalEventDto,
+    );
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.personalEventsService.remove(+id);
+  remove(@Request() req: any, @Param('id') id: string) {
+    const student_id = req.user.student_id;
+    return this.personalEventsService.remove(student_id, +id);
   }
 }
