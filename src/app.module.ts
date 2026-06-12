@@ -10,7 +10,8 @@ import { CoursesModule } from './courses/courses.module';
 import { ClassesModule } from './classes/classes.module';
 import { SemestersModule } from './semesters/semesters.module';
 import { EnrollmentsModule } from './enrollments/enrollments.module';
-import { SchedulesModule } from './schedules/schedules.module';
+import { PreferencesModule } from './preferences/preferences.module';
+// import { SchedulesModule } from './schedules/schedules.module';
 
 @Module({
   imports: [
@@ -34,7 +35,8 @@ import { SchedulesModule } from './schedules/schedules.module';
     ClassesModule,
     SemestersModule,
     EnrollmentsModule,
-    SchedulesModule,
+    PreferencesModule,
+    // SchedulesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
