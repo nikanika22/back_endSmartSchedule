@@ -15,3 +15,6 @@ document/
 openspec/
 scratch/
 CHANGELOG.md
+.postman/
+postman/
+docs/

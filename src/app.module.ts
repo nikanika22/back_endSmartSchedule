@@ -11,7 +11,7 @@ import { ClassesModule } from './classes/classes.module';
 import { SemestersModule } from './semesters/semesters.module';
 import { EnrollmentsModule } from './enrollments/enrollments.module';
 import { PreferencesModule } from './preferences/preferences.module';
-// import { SchedulesModule } from './schedules/schedules.module';
+import { SchedulesModule } from './schedules/schedules.module';
 
 @Module({
   imports: [
@@ -21,10 +21,15 @@ import { PreferencesModule } from './preferences/preferences.module';
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DATABASE_HOST,
-      port: Number(process.env.DATABASE_PORT),
+      port: Number(process.env.DATABASE_PORT ?? 5432),
       username: process.env.DATABASE_USER,
       password: process.env.DATABASE_PASSWORD,
       database: process.env.DATABASE_NAME,
+      ssl:
+        process.env.DATABASE_SSLMODE === 'require' ||
+        process.env.DATABASE_HOST?.includes('neon.tech')
+          ? { rejectUnauthorized: false }
+          : false,
       autoLoadEntities: true,
       synchronize: false,
     }),
@@ -36,7 +41,7 @@ import { PreferencesModule } from './preferences/preferences.module';
     SemestersModule,
     EnrollmentsModule,
     PreferencesModule,
-    // SchedulesModule,
+    SchedulesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -13,8 +13,10 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CreatePersonalEventDto } from './dto/create-personal-event.dto';
 import { UpdatePersonalEventDto } from './dto/update-personal-event.dto';
 import { PersonalEventsService } from './personal-events.service';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 @Controller('personal-events')
 export class PersonalEventsController {
   constructor(private readonly personalEventsService: PersonalEventsService) {}
