@@ -4,7 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Schedule } from './entities/schedule.entity';
 import { Preference } from 'src/preferences/entities/preference.entity';
 import { PreferenceAvoidDay } from 'src/preferences/entities/preference-avoid-day.entity';
@@ -50,6 +50,63 @@ export class SchedulesService {
     private readonly PersonalEventRepository: Repository<PersonalEvent>,
   ) {}
 
+  async detectConflict(dto: GenerateScheduleDto) {
+    const student = await this.StudentRepository.findOne({
+      where: {
+        student_id: dto.student_id,
+      },
+    });
+
+    if (!student) {
+      throw new Error('Student not found');
+    }
+
+    try {
+      const enrollments = await this.EnrollmentRepository.find({
+        where: {
+          student_id: dto.student_id,
+          semester_id: dto.semester_id,
+        },
+        relations: ['course'],
+      });
+
+      if (!enrollments || enrollments.length === 0) {
+        throw new Error(
+          'No enrollments found for the given student and semester',
+        );
+      }
+
+      const courses = enrollments.map((enrollment) => enrollment.course);
+
+      const courseIds = courses.map((course) => course.course_id);
+
+      const classes = await this.ClassRepository.find({
+        where: {
+          course_id: In(courseIds),
+          semester_id: dto.semester_id,
+        },
+      });
+      
+      const body = {
+        student_id: dto.student_id,
+        semester_id: dto.semester_id,
+        classes: classes,
+      };
+
+      const response = await firstValueFrom(
+        this.httpService.post(`${FASTAPI_URL}/schedules/conflicts`, body),
+      );
+
+      return response.data;
+
+    } catch (error: any) {
+      if (error.response) {
+        console.error('FastAPI error response data:', JSON.stringify(error.response.data, null, 2));
+      }
+      throw error;
+    }
+  }
+
   async generateSchedule(dto: GenerateScheduleDto) {
     const student = await this.StudentRepository.findOne({
       where: {
@@ -84,17 +141,14 @@ export class SchedulesService {
 
       const courses = enrollments.map((enrollment) => enrollment.course);
 
-      const classes: ClassEntity[] = []
+      const courseIds = courses.map((course) => course.course_id);
 
-      for (const course of courses) {
-        const classesOfCourse = await this.ClassRepository.find({
-          where: {
-            course_id: course.course_id,
-            semester_id: dto.semester_id,
-          },
-        });
-        classes.push(...classesOfCourse);
-      }
+      const classes = await this.ClassRepository.find({
+        where: {
+          course_id: In(courseIds),
+          semester_id: dto.semester_id,
+        },
+      });
       
       const body = {
         student_id: dto.student_id,

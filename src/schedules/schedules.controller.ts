@@ -15,6 +15,11 @@ export class SchedulesController {
     return this.schedulesService.generateSchedule(generateScheduleDto);
   }
 
+  @Post('conflicts')
+  detectConflicts(@Body() dto: GenerateScheduleDto) {
+    return this.schedulesService.detectConflict(dto);
+  }
+
   @Post()
   create(@Body() createScheduleDto: CreateScheduleDto) {
     return this.schedulesService.create(createScheduleDto);
