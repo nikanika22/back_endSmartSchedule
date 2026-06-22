@@ -13,6 +13,7 @@ import { ClassEntity } from 'src/classes/entities/class.entity';
 import { Enrollment } from 'src/enrollments/entities/enrollment.entity';
 import { Student } from 'src/students/entities/student.entity';
 import { PersonalEvent } from 'src/personal-events/entities/personal-event.entity';
+import { EngineService } from './engine/engine.service';
 
 @Module({
   imports: [
@@ -31,6 +32,6 @@ import { PersonalEvent } from 'src/personal-events/entities/personal-event.entit
     ]),
   ],
   controllers: [SchedulesController],
-  providers: [SchedulesService],
+  providers: [SchedulesService, EngineService],
 })
 export class SchedulesModule {}
