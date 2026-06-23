@@ -1,13 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
-export class CreateEnrollmentDto {
+export class SaveScheduleDto {
   @ApiProperty({
-    example: 'CS03043',
+    example: 1,
   })
-  @IsString()
+  @IsNumber()
   @IsNotEmpty()
-  course_id!: string;
+  schedule_id!: number;
 
   @ApiProperty({
     example: 'HK1-2025',
@@ -15,5 +15,4 @@ export class CreateEnrollmentDto {
   @IsString()
   @IsNotEmpty()
   semester_id!: string;
-  course_id: string;
 }
