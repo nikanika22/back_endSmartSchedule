@@ -3,6 +3,7 @@ import {
     Controller,
     Delete,
     Get,
+    HttpCode,
     Param,
     Patch,
     Post,
@@ -11,7 +12,13 @@ import { ClassesService } from '../classes/classes.service';
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
+import { UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 
+import { ApiBearerAuth } from '@nestjs/swagger';
+
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('courses')
 export class CoursesController {
     constructor(

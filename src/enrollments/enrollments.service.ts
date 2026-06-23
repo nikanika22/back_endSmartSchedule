@@ -22,9 +22,13 @@ export class EnrollmentsService {
   ) {}
 
   async create(student_id: string, createEnrollmentDto: CreateEnrollmentDto) {
-    const { course_id, semester_id } = createEnrollmentDto;
+    const { course_id } = createEnrollmentDto;
 
     // 1. Validate course tồn tại
+    const activeSemester = await this.semesterRepository.findOne({
+      where: { is_active: true }
+    });
+    
     const course = await this.courseRepository.findOne({
       where: { course_id },
     });
@@ -39,10 +43,7 @@ export class EnrollmentsService {
     }
 
     // 2. Validate semester tồn tại
-    const semester = await this.semesterRepository.findOne({
-      where: { semester_id },
-    });
-    if (!semester) {
+    if (!activeSemester) {
       throw new NotFoundException({
         success: false,
         error: {
@@ -54,7 +55,7 @@ export class EnrollmentsService {
 
     // 3. Check duplicate
     const existing = await this.enrollmentRepository.findOne({
-      where: { student_id, course_id, semester_id },
+      where: { student_id, course_id, semester_id: activeSemester.semester_id },
     });
     if (existing) {
       throw new ConflictException({
@@ -70,7 +71,7 @@ export class EnrollmentsService {
     const enrollment = this.enrollmentRepository.create({
       student_id,
       course_id,
-      semester_id,
+      semester_id: activeSemester.semester_id || ' ',
       enrolled_at: new Date(),
     });
 
