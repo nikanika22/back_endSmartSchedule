@@ -17,6 +17,11 @@ export class SemestersController {
     return this.semestersService.findAll();
   }
 
+  @Get('active')
+  findActive() {
+    return this.semestersService.findActive();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.semestersService.findOne(+id);
