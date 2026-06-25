@@ -1,5 +1,4 @@
 import {
-  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -23,8 +22,6 @@ export class EnrollmentsService {
 
   async create(student_id: string, createEnrollmentDto: CreateEnrollmentDto) {
     const { course_id } = createEnrollmentDto;
-
-    // 1. Validate course tồn tại
     const activeSemester = await this.semesterRepository.findOne({
       where: { is_active: true }
     });
@@ -83,5 +80,48 @@ export class EnrollmentsService {
       semester_id: saved.semester_id,
       enrolled_at: saved.enrolled_at,
     };
+  }
+
+  async getMyEnrollments(student_id: string) {
+    // Tìm học kỳ đang active
+    const activeSemester = await this.semesterRepository.findOne({
+      where: { is_active: true },
+    });
+    if (!activeSemester) {
+      throw new NotFoundException({
+        success: false,
+        error: {
+          code: 'ENROLLMENT_SEMESTER_NOT_FOUND',
+          message: 'Không tìm thấy học kỳ đang hoạt động.',
+        },
+      });
+    }
+
+    // Lấy enrollments kèm relation course
+    const enrollments = await this.enrollmentRepository.find({
+      where: { student_id, semester_id: activeSemester.semester_id },
+      relations: ['course'],
+    });
+
+    return enrollments.map((e) => ({
+      course_id: e.course_id,
+      course_name: e.course?.course_name ?? '',
+      credits: e.course?.credits ?? 0,
+      department: e.course?.department ?? '',
+      enrolled_at: e.enrolled_at,
+      semester_id: e.semester_id,
+    }));
+  }
+
+  async deleteMyEnrollments(student_id: string) {
+    const activeSemester = await this.semesterRepository.findOne({
+      where: { is_active: true },
+    });
+    if (!activeSemester) return;
+
+    await this.enrollmentRepository.delete({
+      student_id,
+      semester_id: activeSemester.semester_id,
+    });
   }
 }
