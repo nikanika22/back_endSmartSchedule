@@ -1,0 +1,19 @@
+$kind: http-request
+name: Update Class
+method: PATCH
+url: '{{base_url}}/classes/{{class_id}}'
+auth:
+  type: bearer
+  credentials:
+    token: '{{access_token}}'
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "room": "B202",
+      "instructor": "Dr. Le Van C"
+    }
+description: 'Update a class section by class_id.'
+order: 4000

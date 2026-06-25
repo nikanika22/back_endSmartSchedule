@@ -1,0 +1,10 @@
+$kind: http-request
+name: Delete Personal Event
+method: DELETE
+url: '{{base_url}}/personal-events/{{event_id}}'
+auth:
+  type: bearer
+  credentials:
+    token: '{{access_token}}'
+description: 'Delete a personal event by ID. JWT required.'
+order: 5000

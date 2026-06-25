@@ -1,0 +1,10 @@
+$kind: http-request
+name: Get All Semesters
+method: GET
+url: '{{base_url}}/semesters'
+auth:
+  type: bearer
+  credentials:
+    token: '{{access_token}}'
+description: 'Retrieve all semesters.'
+order: 2000

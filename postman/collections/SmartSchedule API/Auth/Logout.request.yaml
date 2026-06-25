@@ -1,0 +1,18 @@
+$kind: http-request
+name: Logout
+method: POST
+url: '{{base_url}}/auth/logout'
+auth:
+  type: bearer
+  credentials:
+    token: '{{access_token}}'
+description: 'Logout and blacklist the current JWT token.'
+order: 3000
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      if (pm.response.code === 200) {
+        pm.environment.unset("access_token");
+        console.log("access_token cleared");
+      }

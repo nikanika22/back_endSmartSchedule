@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -334,6 +334,14 @@ export class SchedulesService {
 
   async remove(student_id: string, id: number) {
     const schedule = await this.findOne(student_id ,id);
+
+    if (schedule.is_selected) {
+      throw new BadRequestException({
+        success: false,
+        error: { code: 'SCHEDULE_IS_SELECTED', message: `Không thể xóa thời khóa biểu đã được chọn` }
+      });
+    }
+
     return await this.ScheduleRepository.remove(schedule);
   }
 }

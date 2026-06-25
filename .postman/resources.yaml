@@ -1,0 +1,8 @@
+# Use this workspace to collaborate
+workspace:
+  id: 451d9f8a-8352-4494-a54d-c215dfc3073f
+
+localResources:
+  docs:
+    - ..\SRS_SmartSchedule_v2.md
+.md

@@ -1,0 +1,18 @@
+$kind: http-request
+name: Update Semester
+method: PATCH
+url: '{{base_url}}/semesters/{{semester_id}}'
+auth:
+  type: bearer
+  credentials:
+    token: '{{access_token}}'
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Học kỳ 1 năm 2024 (Updated)"
+    }
+description: 'Update a semester by ID.'
+order: 4000

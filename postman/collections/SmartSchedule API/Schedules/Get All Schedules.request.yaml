@@ -1,0 +1,10 @@
+$kind: http-request
+name: Get All Schedules
+method: GET
+url: '{{base_url}}/schedules'
+auth:
+  type: bearer
+  credentials:
+    token: '{{access_token}}'
+description: 'Retrieve all schedules for the authenticated student. JWT required.'
+order: 2000

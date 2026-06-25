@@ -1,0 +1,23 @@
+$kind: http-request
+name: Create Personal Event
+method: POST
+url: '{{base_url}}/personal-events'
+auth:
+  type: bearer
+  credentials:
+    token: '{{access_token}}'
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "Làm thêm quán cà phê",
+      "day_of_week": 3,
+      "start_time": "14:00",
+      "end_time": "19:00",
+      "is_recurring": true,
+      "note": "part-time"
+    }
+description: 'Create a personal calendar event for the authenticated student. JWT required.'
+order: 1000

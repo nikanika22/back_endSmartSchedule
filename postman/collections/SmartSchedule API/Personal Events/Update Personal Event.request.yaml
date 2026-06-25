@@ -1,0 +1,19 @@
+$kind: http-request
+name: Update Personal Event
+method: PATCH
+url: '{{base_url}}/personal-events/{{event_id}}'
+auth:
+  type: bearer
+  credentials:
+    token: '{{access_token}}'
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "Study group meeting (Updated)",
+      "note": "Bring charger too"
+    }
+description: 'Update a personal event by ID. JWT required.'
+order: 4000

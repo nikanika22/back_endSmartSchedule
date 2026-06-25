@@ -1,0 +1,10 @@
+$kind: http-request
+name: Delete Class
+method: DELETE
+url: '{{base_url}}/classes/{{class_id}}'
+auth:
+  type: bearer
+  credentials:
+    token: '{{access_token}}'
+description: 'Delete a class section by class_id.'
+order: 5000

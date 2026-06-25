@@ -1,0 +1,22 @@
+name: SmartSchedule - Dev
+values:
+  - key: base_url
+    value: 'http://localhost:3001'
+  - key: access_token
+    value: ''
+  - key: student_id
+    value: '1'
+  - key: course_id
+    value: CS101
+  - key: class_id
+    value: CS101-01
+  - key: semester_id
+    value: '1'
+  - key: schedule_id
+    value: '1'
+  - key: event_id
+    value: '1'
+  - key: token_type
+    value: ''
+  - key: token_expires_at
+    value: ''

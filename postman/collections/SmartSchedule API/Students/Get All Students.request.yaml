@@ -1,0 +1,10 @@
+$kind: http-request
+name: Get All Students
+method: GET
+url: '{{base_url}}/students'
+auth:
+  type: bearer
+  credentials:
+    token: '{{access_token}}'
+description: 'Retrieve all students (admin use).'
+order: 1000

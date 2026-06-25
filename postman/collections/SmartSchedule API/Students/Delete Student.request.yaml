@@ -1,0 +1,10 @@
+$kind: http-request
+name: Delete Student
+method: DELETE
+url: '{{base_url}}/students/{{student_id}}'
+auth:
+  type: bearer
+  credentials:
+    token: '{{access_token}}'
+description: 'Delete a student by student_id.'
+order: 4000

@@ -1,0 +1,10 @@
+$kind: http-request
+name: Delete Semester
+method: DELETE
+url: '{{base_url}}/semesters/{{semester_id}}'
+auth:
+  type: bearer
+  credentials:
+    token: '{{access_token}}'
+description: 'Delete a semester by ID.'
+order: 5000
