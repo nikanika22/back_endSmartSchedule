@@ -1,0 +1,10 @@
+$kind: http-request
+name: Get Current User
+method: GET
+url: '{{base_url}}/auth/me'
+auth:
+  type: bearer
+  credentials:
+    token: '{{access_token}}'
+description: 'Get the currently authenticated user info (student_id, email, role).'
+order: 4000

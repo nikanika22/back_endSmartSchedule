@@ -1,0 +1,17 @@
+$kind: http-request
+name: Register
+method: POST
+url: '{{base_url}}/auth/register'
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "student_id": "DH52200843",
+      "name": "Nguyen Van A",
+      "email": "dh52200843@student.stu.edu.vn",
+      "password": "Abc12345"
+    }
+description: 'Register a new student account. student_id must match DH\d{6,15}, email must be @student.stu.edu.vn, password min 8 chars with 1 uppercase + 1 digit.'
+order: 1000

@@ -1,0 +1,10 @@
+$kind: http-request
+name: Get All Personal Events
+method: GET
+url: '{{base_url}}/personal-events'
+auth:
+  type: bearer
+  credentials:
+    token: '{{access_token}}'
+description: 'Get all personal events for the authenticated student. JWT required.'
+order: 2000

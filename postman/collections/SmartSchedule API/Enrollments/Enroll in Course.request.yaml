@@ -1,0 +1,19 @@
+$kind: http-request
+name: Enroll in Course
+method: POST
+url: '{{base_url}}/enrollments'
+auth:
+  type: bearer
+  credentials:
+    token: '{{access_token}}'
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "course_id": "CS03057",
+      "semester_id": "HK1-2025"
+    }
+description: 'Enroll the authenticated student in a course for a given semester. JWT required.'
+order: 1000

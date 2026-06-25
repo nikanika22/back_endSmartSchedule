@@ -1,0 +1,1010 @@
+openapi: 3.0.3
+info:
+  title: SmartSchedule API
+  description: >
+    Backend API for SmartSchedule — a smart academic schedule management system
+    for students of STU (Saigon Technology University). Built with NestJS 11 +
+    TypeORM 0.3 + PostgreSQL 16.
+  version: '1.0.0'
+  contact:
+    name: SmartSchedule Team
+
+servers:
+  - url: 'http://localhost:3001'
+    description: Development
+  - url: 'https://smartschedule-staging.onrender.com'
+    description: Staging
+  - url: 'https://smartschedule.onrender.com'
+    description: Production
+
+tags:
+  - name: Auth
+    description: Authentication — register, login, logout, current user
+  - name: Students
+    description: Student management (admin)
+  - name: Semesters
+    description: Academic semester management
+  - name: Courses
+    description: Course catalogue management
+  - name: Classes
+    description: Class section management (linked to courses & semesters)
+  - name: Enrollments
+    description: Student course enrollment (JWT required)
+  - name: Schedules
+    description: Generated schedule management
+  - name: Personal Events
+    description: Student personal calendar events (JWT required)
+  - name: Preferences
+    description: Student scheduling preferences (JWT required)
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # ── Auth ──────────────────────────────────────────────────────────────────
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: 'dh52200843@student.stu.edu.vn'
+        password:
+          type: string
+          minLength: 6
+          example: 'Abc12345'
+
+    RegisterRequest:
+      type: object
+      required: [student_id, name, email, password]
+      properties:
+        student_id:
+          type: string
+          pattern: '^DH\d{6,15}$'
+          example: 'DH52200843'
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: 'Nguyen Van A'
+        email:
+          type: string
+          format: email
+          pattern: '^dh\d+@student\.stu\.edu\.vn$'
+          example: 'dh52200843@student.stu.edu.vn'
+        password:
+          type: string
+          minLength: 8
+          example: 'Abc12345'
+          description: 'Must contain at least 1 uppercase letter and 1 digit'
+
+    AuthResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        student_id:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+
+    MeResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            student_id:
+              type: string
+            email:
+              type: string
+            role:
+              type: string
+
+    # ── Semester ──────────────────────────────────────────────────────────────
+    Semester:
+      type: object
+      properties:
+        semester_id:
+          type: string
+          example: 'HK1-2024'
+        name:
+          type: string
+          example: 'Học kỳ 1 năm 2024'
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+
+    CreateSemesterRequest:
+      type: object
+      properties:
+        semester_id:
+          type: string
+          example: 'HK1-2024'
+        name:
+          type: string
+          example: 'Học kỳ 1 năm 2024'
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+
+    # ── Course ────────────────────────────────────────────────────────────────
+    Course:
+      type: object
+      properties:
+        course_id:
+          type: string
+          maxLength: 20
+          example: 'CS101'
+        course_name:
+          type: string
+          maxLength: 200
+          example: 'Introduction to Programming'
+        credits:
+          type: integer
+          minimum: 1
+          maximum: 20
+          example: 3
+        department:
+          type: string
+          maxLength: 100
+          example: 'Computer Science'
+
+    CreateCourseRequest:
+      type: object
+      required: [course_id, course_name, credits]
+      properties:
+        course_id:
+          type: string
+          maxLength: 20
+          example: 'CS101'
+        course_name:
+          type: string
+          maxLength: 200
+          example: 'Introduction to Programming'
+        credits:
+          type: integer
+          minimum: 1
+          maximum: 20
+          example: 3
+        department:
+          type: string
+          maxLength: 100
+          example: 'Computer Science'
+
+    UpdateCourseRequest:
+      type: object
+      properties:
+        course_name:
+          type: string
+          maxLength: 200
+        credits:
+          type: integer
+          minimum: 1
+          maximum: 20
+        department:
+          type: string
+          maxLength: 100
+
+    # ── Class ─────────────────────────────────────────────────────────────────
+    Class:
+      type: object
+      properties:
+        class_id:
+          type: string
+          maxLength: 20
+          example: 'CS101-01'
+        course_id:
+          type: string
+          example: 'CS101'
+        semester_id:
+          type: string
+          example: 'HK1-2024'
+        day_of_week:
+          type: integer
+          minimum: 2
+          maximum: 8
+          description: '2=Monday … 7=Saturday, 8=Sunday'
+          example: 2
+        start_time:
+          type: string
+          pattern: '^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$'
+          example: '07:30'
+        end_time:
+          type: string
+          pattern: '^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$'
+          example: '09:30'
+        room:
+          type: string
+          maxLength: 50
+          example: 'A101'
+        instructor:
+          type: string
+          maxLength: 100
+          example: 'Dr. Tran Van B'
+        max_students:
+          type: integer
+          minimum: 1
+          example: 40
+
+    CreateClassRequest:
+      type: object
+      required: [class_id, course_id, semester_id, day_of_week, start_time, end_time, max_students]
+      properties:
+        class_id:
+          type: string
+          maxLength: 20
+          example: 'CS101-01'
+        course_id:
+          type: string
+          maxLength: 20
+          example: 'CS101'
+        semester_id:
+          type: string
+          maxLength: 10
+          example: 'HK1-2024'
+        day_of_week:
+          type: integer
+          minimum: 2
+          maximum: 8
+          example: 2
+        start_time:
+          type: string
+          example: '07:30'
+        end_time:
+          type: string
+          example: '09:30'
+        room:
+          type: string
+          maxLength: 50
+          example: 'A101'
+        instructor:
+          type: string
+          maxLength: 100
+          example: 'Dr. Tran Van B'
+        max_students:
+          type: integer
+          minimum: 1
+          example: 40
+
+    # ── Enrollment ────────────────────────────────────────────────────────────
+    CreateEnrollmentRequest:
+      type: object
+      required: [course_id, semester_id]
+      properties:
+        course_id:
+          type: string
+          example: 'CS101'
+        semester_id:
+          type: string
+          example: 'HK1-2024'
+
+    # ── Personal Event ────────────────────────────────────────────────────────
+    PersonalEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+          maxLength: 200
+          example: 'Study group meeting'
+        day_of_week:
+          type: integer
+          minimum: 2
+          maximum: 8
+          example: 3
+        start_time:
+          type: string
+          example: '14:00'
+        end_time:
+          type: string
+          example: '16:00'
+        is_recurring:
+          type: boolean
+          example: true
+        note:
+          type: string
+          example: 'Bring laptop'
+
+    CreatePersonalEventRequest:
+      type: object
+      required: [title, start_time, end_time]
+      properties:
+        title:
+          type: string
+          maxLength: 200
+          example: 'Study group meeting'
+        day_of_week:
+          type: integer
+          minimum: 2
+          maximum: 8
+          example: 3
+        start_time:
+          type: string
+          pattern: '^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$'
+          example: '14:00'
+        end_time:
+          type: string
+          pattern: '^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$'
+          example: '16:00'
+        is_recurring:
+          type: boolean
+          example: true
+        note:
+          type: string
+          example: 'Bring laptop'
+
+    # ── Preferences ───────────────────────────────────────────────────────────
+    UpdatePreferenceRequest:
+      type: object
+      required: [preferred_slot]
+      properties:
+        preferred_slot:
+          type: string
+          enum: [MORNING, AFTERNOON, EVENING]
+          example: 'MORNING'
+
+    AvoidDaysRequest:
+      type: object
+      required: [days]
+      properties:
+        days:
+          type: array
+          items:
+            type: integer
+            minimum: 2
+            maximum: 8
+          example: [2, 8]
+          description: 'Array of day numbers to avoid (2=Mon … 8=Sun)'
+
+    # ── Generic ───────────────────────────────────────────────────────────────
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+
+    ErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+        message:
+          type: string
+        error:
+          type: string
+
+paths:
+  # ════════════════════════════════════════════════════════════════════════════
+  # AUTH
+  # ════════════════════════════════════════════════════════════════════════════
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new student account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Student registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login and receive JWT access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout and blacklist the current JWT
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logged out successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '401':
+          description: Unauthorized
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current authenticated user info
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeResponse'
+        '401':
+          description: Unauthorized
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # STUDENTS
+  # ════════════════════════════════════════════════════════════════════════════
+  /students:
+    get:
+      tags: [Students]
+      summary: Get all students
+      responses:
+        '200':
+          description: List of students
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /students/{id}:
+    get:
+      tags: [Students]
+      summary: Get a student by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Student found
+        '404':
+          description: Student not found
+
+    patch:
+      tags: [Students]
+      summary: Update a student
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Student updated
+
+    delete:
+      tags: [Students]
+      summary: Delete a student
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Student deleted
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # SEMESTERS
+  # ════════════════════════════════════════════════════════════════════════════
+  /semesters:
+    post:
+      tags: [Semesters]
+      summary: Create a new semester
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSemesterRequest'
+      responses:
+        '201':
+          description: Semester created
+
+    get:
+      tags: [Semesters]
+      summary: Get all semesters
+      responses:
+        '200':
+          description: List of semesters
+
+  /semesters/{id}:
+    get:
+      tags: [Semesters]
+      summary: Get a semester by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Semester found
+
+    patch:
+      tags: [Semesters]
+      summary: Update a semester
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Semester updated
+
+    delete:
+      tags: [Semesters]
+      summary: Delete a semester
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Semester deleted
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # COURSES
+  # ════════════════════════════════════════════════════════════════════════════
+  /courses:
+    post:
+      tags: [Courses]
+      summary: Create a new course
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCourseRequest'
+      responses:
+        '201':
+          description: Course created
+
+    get:
+      tags: [Courses]
+      summary: Get all courses
+      responses:
+        '200':
+          description: List of courses
+
+  /courses/{id}:
+    get:
+      tags: [Courses]
+      summary: Get a course by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Course found
+
+    patch:
+      tags: [Courses]
+      summary: Update a course
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCourseRequest'
+      responses:
+        '200':
+          description: Course updated
+
+    delete:
+      tags: [Courses]
+      summary: Delete a course
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Course deleted
+
+  /courses/{id}/classes:
+    get:
+      tags: [Courses]
+      summary: Get all class sections for a course
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of class sections for the course
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # CLASSES
+  # ════════════════════════════════════════════════════════════════════════════
+  /classes:
+    post:
+      tags: [Classes]
+      summary: Create a new class section
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateClassRequest'
+      responses:
+        '201':
+          description: Class created
+
+    get:
+      tags: [Classes]
+      summary: Get all class sections
+      responses:
+        '200':
+          description: List of class sections
+
+  /classes/{id}:
+    get:
+      tags: [Classes]
+      summary: Get a class section by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Class found
+
+    patch:
+      tags: [Classes]
+      summary: Update a class section
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Class updated
+
+    delete:
+      tags: [Classes]
+      summary: Delete a class section
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Class deleted
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # ENROLLMENTS
+  # ════════════════════════════════════════════════════════════════════════════
+  /enrollments:
+    post:
+      tags: [Enrollments]
+      summary: Enroll the authenticated student in a course
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEnrollmentRequest'
+      responses:
+        '201':
+          description: Enrollment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+        '400':
+          description: Validation error
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # SCHEDULES
+  # ════════════════════════════════════════════════════════════════════════════
+  /schedules:
+    post:
+      tags: [Schedules]
+      summary: Create a schedule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Schedule created
+
+    get:
+      tags: [Schedules]
+      summary: Get all schedules
+      responses:
+        '200':
+          description: List of schedules
+
+  /schedules/{id}:
+    get:
+      tags: [Schedules]
+      summary: Get a schedule by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Schedule found
+
+    patch:
+      tags: [Schedules]
+      summary: Update a schedule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Schedule updated
+
+    delete:
+      tags: [Schedules]
+      summary: Delete a schedule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Schedule deleted
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # PERSONAL EVENTS
+  # ════════════════════════════════════════════════════════════════════════════
+  /personal-events:
+    post:
+      tags: [Personal Events]
+      summary: Create a personal event for the authenticated student
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePersonalEventRequest'
+      responses:
+        '201':
+          description: Personal event created
+        '401':
+          description: Unauthorized
+
+    get:
+      tags: [Personal Events]
+      summary: Get all personal events for the authenticated student
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of personal events
+        '401':
+          description: Unauthorized
+
+  /personal-events/{id}:
+    get:
+      tags: [Personal Events]
+      summary: Get a personal event by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Personal event found
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+
+    patch:
+      tags: [Personal Events]
+      summary: Update a personal event
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePersonalEventRequest'
+      responses:
+        '200':
+          description: Personal event updated
+        '401':
+          description: Unauthorized
+
+    delete:
+      tags: [Personal Events]
+      summary: Delete a personal event
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Personal event deleted
+        '401':
+          description: Unauthorized
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # PREFERENCES
+  # ════════════════════════════════════════════════════════════════════════════
+  /preferences:
+    post:
+      tags: [Preferences]
+      summary: Set preferred study slot (MORNING / AFTERNOON / EVENING)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePreferenceRequest'
+      responses:
+        '201':
+          description: Preference saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+
+  /preferences/avoid-days:
+    post:
+      tags: [Preferences]
+      summary: Add days to avoid when generating schedule
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AvoidDaysRequest'
+      responses:
+        '201':
+          description: Avoid days saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized

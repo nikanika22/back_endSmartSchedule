@@ -1,0 +1,18 @@
+$kind: http-request
+name: Update Schedule
+method: PATCH
+url: '{{base_url}}/schedules/{{schedule_id}}'
+auth:
+  type: bearer
+  credentials:
+    token: '{{access_token}}'
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "semester_id": "{{semester_id}}"
+    }
+description: 'Update a schedule by ID. JWT required.'
+order: 4000

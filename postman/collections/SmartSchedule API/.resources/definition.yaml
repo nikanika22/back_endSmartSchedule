@@ -1,0 +1,10 @@
+$kind: collection
+name: SmartSchedule API
+description: |
+  Complete API collection for SmartSchedule — a smart academic schedule management system for STU students. NestJS 11 + TypeORM + PostgreSQL.
+auth:
+  type: bearer
+  credentials:
+    token: "{{access_token}}"
+variables:
+  base_url: http://localhost:3000

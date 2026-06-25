@@ -1,0 +1,19 @@
+$kind: http-request
+name: Update Course
+method: PATCH
+url: '{{base_url}}/courses/{{course_id}}'
+auth:
+  type: bearer
+  credentials:
+    token: '{{access_token}}'
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "course_name": "Intro to Programming (Updated)",
+      "credits": 4
+    }
+description: 'Update a course by course_id.'
+order: 5000

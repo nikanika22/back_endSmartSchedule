@@ -2,6 +2,7 @@ import {
     ConflictException,
     Injectable,
     NotFoundException,
+    BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -70,6 +71,19 @@ export class CoursesService {
 
     async remove(id: string): Promise<void> {
         const course = await this.findOne(id);
-        await this.courseRepository.remove(course);
+        try {
+            await this.courseRepository.remove(course);
+        } catch (error: any) {
+            if (error.code === '23001') {
+                throw new BadRequestException({
+                    success: false,
+                    error: {
+                        code: 'COURSE_HAVE_CLASS',
+                        message: `Không thể xóa môn học với mã: ${id} vì môn học này đã có lớp`,
+                    },
+                });
+            }
+            throw error; 
+        }
     }
 }

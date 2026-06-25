@@ -1,0 +1,26 @@
+name: SmartSchedule - Production
+values:
+  - key: base_url
+    value: 'https://smartschedule-api.onrender.com'
+    enabled: true
+  - key: access_token
+    value: ''
+    enabled: true
+  - key: student_id
+    value: ''
+    enabled: true
+  - key: course_id
+    value: ''
+    enabled: true
+  - key: class_id
+    value: ''
+    enabled: true
+  - key: semester_id
+    value: ''
+    enabled: true
+  - key: schedule_id
+    value: ''
+    enabled: true
+  - key: event_id
+    value: ''
+    enabled: true

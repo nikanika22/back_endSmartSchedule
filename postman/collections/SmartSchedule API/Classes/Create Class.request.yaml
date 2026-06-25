@@ -1,0 +1,26 @@
+$kind: http-request
+name: Create Class
+method: POST
+url: '{{base_url}}/classes'
+auth:
+  type: bearer
+  credentials:
+    token: '{{access_token}}'
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "class_id": "CS101-01",
+      "course_id": "CS101",
+      "semester_id": "HK1-2024",
+      "day_of_week": 2,
+      "start_time": "07:30",
+      "end_time": "09:30",
+      "room": "A101",
+      "instructor": "Dr. Tran Van B",
+      "max_students": 40
+    }
+description: 'Create a new class section. day_of_week: 2=Mon, 3=Tue, 4=Wed, 5=Thu, 6=Fri, 7=Sat, 8=Sun.'
+order: 1000

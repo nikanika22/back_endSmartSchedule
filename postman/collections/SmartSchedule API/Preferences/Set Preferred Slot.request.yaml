@@ -1,0 +1,18 @@
+$kind: http-request
+name: Set Preferred Slot
+method: POST
+url: '{{base_url}}/preferences'
+auth:
+  type: bearer
+  credentials:
+    token: '{{access_token}}'
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "preferred_slot": "MORNING"
+    }
+description: 'Set the preferred study slot for the authenticated student. Values: MORNING, AFTERNOON, EVENING. JWT required.'
+order: 1000

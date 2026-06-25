@@ -1,0 +1,18 @@
+$kind: http-request
+name: Add Avoid Days
+method: POST
+url: '{{base_url}}/preferences/avoid-days'
+auth:
+  type: bearer
+  credentials:
+    token: '{{access_token}}'
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "days": [2, 8]
+    }
+description: 'Add days to avoid when generating schedule. 2=Mon, 3=Tue, 4=Wed, 5=Thu, 6=Fri, 7=Sat, 8=Sun. JWT required.'
+order: 2000

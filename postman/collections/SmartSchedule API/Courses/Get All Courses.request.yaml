@@ -1,0 +1,10 @@
+$kind: http-request
+name: Get All Courses
+method: GET
+url: '{{base_url}}/courses'
+auth:
+  type: bearer
+  credentials:
+    token: '{{access_token}}'
+description: 'Retrieve all courses.'
+order: 2000

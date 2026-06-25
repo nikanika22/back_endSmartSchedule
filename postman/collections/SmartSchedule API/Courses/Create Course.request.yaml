@@ -1,0 +1,21 @@
+$kind: http-request
+name: Create Course
+method: POST
+url: '{{base_url}}/courses'
+auth:
+  type: bearer
+  credentials:
+    token: '{{access_token}}'
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "course_id": "CS101",
+      "course_name": "Introduction to Programming",
+      "credits": 3,
+      "department": "Computer Science"
+    }
+description: 'Create a new course in the catalogue.'
+order: 1000

@@ -1,0 +1,26 @@
+name: SmartSchedule - Staging
+values:
+  - key: base_url
+    value: 'https://smartschedule-api-staging.onrender.com'
+    enabled: true
+  - key: access_token
+    value: ''
+    enabled: true
+  - key: student_id
+    value: '1'
+    enabled: true
+  - key: course_id
+    value: 'CS101'
+    enabled: true
+  - key: class_id
+    value: 'CS101-01'
+    enabled: true
+  - key: semester_id
+    value: '1'
+    enabled: true
+  - key: schedule_id
+    value: '1'
+    enabled: true
+  - key: event_id
+    value: '1'
+    enabled: true

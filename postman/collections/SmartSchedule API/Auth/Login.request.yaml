@@ -1,0 +1,41 @@
+$kind: http-request
+name: Login
+method: POST
+url: '{{base_url}}/auth/login'
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "dh52200843@student.stu.edu.vn",
+      "password": "Baokhang08112004"
+    }
+description: Login and receive JWT access token. Save the access_token from the response.
+auth:
+  type: inherit
+  credentials:
+    id: collection-65ABCDD79d91cf6cEdad3f45-bearer
+order: 2000
+scripts:
+  - type: afterResponse
+    code: |-
+      const res = pm.response.json();
+
+      pm.test("Login thanh cong", function () {
+          pm.response.to.have.status(200);
+          pm.expect(res.access_token).to.be.a("string");
+      });
+
+      if (res.access_token) {
+          pm.environment.set("access_token", res.access_token);
+          pm.environment.set("token_type", res.token_type || "Bearer");
+          if (res.expires_at) {
+              pm.environment.set("token_expires_at", res.expires_at);
+          }
+          console.log("access_token da duoc luu vao environment");
+          console.log("Token het han luc:", res.expires_at);
+      } else {
+          console.error("Khong tim thay access_token trong response");
+      }
+    language: text/javascript

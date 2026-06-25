@@ -1,0 +1,10 @@
+$kind: http-request
+name: Get Student by ID
+method: GET
+url: '{{base_url}}/students/{{student_id}}'
+auth:
+  type: bearer
+  credentials:
+    token: '{{access_token}}'
+description: 'Get a single student by student_id.'
+order: 2000

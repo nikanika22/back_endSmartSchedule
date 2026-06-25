@@ -1,0 +1,18 @@
+$kind: http-request
+name: Create Schedule
+method: POST
+url: '{{base_url}}/schedules'
+auth:
+  type: bearer
+  credentials:
+    token: '{{access_token}}'
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "semester_id": "{{semester_id}}"
+    }
+description: 'Generate a new schedule for the authenticated student for a given semester. JWT required.'
+order: 1000

@@ -1,0 +1,10 @@
+$kind: http-request
+name: Get All Classes
+method: GET
+url: '{{base_url}}/classes'
+auth:
+  type: bearer
+  credentials:
+    token: '{{access_token}}'
+description: 'Retrieve all class sections.'
+order: 2000
