@@ -30,8 +30,15 @@ import { SchedulesModule } from './schedules/schedules.module';
         process.env.DATABASE_HOST?.includes('neon.tech')
           ? { rejectUnauthorized: false }
           : false,
+      url: process.env.DATABASE_URL,
+      host: process.env.DATABASE_URL ? undefined : process.env.DATABASE_HOST,
+      port: process.env.DATABASE_URL ? undefined : Number(process.env.DATABASE_PORT),
+      username: process.env.DATABASE_URL ? undefined : process.env.DATABASE_USER,
+      password: process.env.DATABASE_URL ? undefined : process.env.DATABASE_PASSWORD,
+      database: process.env.DATABASE_URL ? undefined : process.env.DATABASE_NAME,
       autoLoadEntities: true,
       synchronize: false,
+      ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
     }),
     AuthModule,
     StudentsModule,

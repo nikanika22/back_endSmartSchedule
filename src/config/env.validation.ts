@@ -3,6 +3,7 @@ import {
   IsEnum,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsString,
   validateSync,
 } from 'class-validator';
@@ -15,22 +16,28 @@ enum NodeEnv {
 
 class EnvironmentVariables {
   @IsString()
-  @IsNotEmpty()
-  DATABASE_HOST: string;
+  @IsOptional()
+  DATABASE_URL?: string;
+
+  @IsString()
+  @IsOptional()
+  DATABASE_HOST?: string;
 
   @IsNumber()
-  DATABASE_PORT: number;
+  @IsOptional()
+  DATABASE_PORT?: number;
 
   @IsString()
-  @IsNotEmpty()
-  DATABASE_NAME: string;
+  @IsOptional()
+  DATABASE_NAME?: string;
 
   @IsString()
-  @IsNotEmpty()
-  DATABASE_USER: string;
+  @IsOptional()
+  DATABASE_USER?: string;
 
   @IsString()
-  DATABASE_PASSWORD: string;
+  @IsOptional()
+  DATABASE_PASSWORD?: string;
 
   @IsString()
   @IsNotEmpty()
