@@ -2,7 +2,7 @@ import { Injectable, BadGatewayException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 
-const ENGINE_URL = process.env.ENGINE_URL ?? 'http://localhost:8000';
+const ENGINE_URL = process.env.ENGINE_URL ?? 'http://127.0.0.1:8000';
 
 @Injectable()
 export class EngineService {

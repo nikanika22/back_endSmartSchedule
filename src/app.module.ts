@@ -32,6 +32,27 @@ import { SchedulesModule } from './schedules/schedules.module';
         process.env.DATABASE_HOST?.includes('neon.tech')
           ? { rejectUnauthorized: false }
           : false,
+      ...(process.env.DATABASE_URL
+        ? {
+            url: process.env.DATABASE_URL,
+            ssl:
+              process.env.DATABASE_SSLMODE === 'require' ||
+              process.env.DATABASE_URL?.includes('neon.tech')
+                ? { rejectUnauthorized: false }
+                : false,
+          }
+        : {
+            host: process.env.DATABASE_HOST,
+            port: Number(process.env.DATABASE_PORT ?? 5432),
+            username: process.env.DATABASE_USER,
+            password: process.env.DATABASE_PASSWORD,
+            database: process.env.DATABASE_NAME,
+            ssl:
+              process.env.DATABASE_SSLMODE === 'require' ||
+              process.env.DATABASE_HOST?.includes('neon.tech')
+                ? { rejectUnauthorized: false }
+                : false,
+          }),
       autoLoadEntities: true,
       synchronize: false,
     }),

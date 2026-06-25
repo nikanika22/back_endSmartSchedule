@@ -58,13 +58,12 @@ export class EnrollmentsService {
       where: { student_id, course_id, semester_id: activeSemester.semester_id },
     });
     if (existing) {
-      throw new ConflictException({
-        success: false,
-        error: {
-          code: 'ENROLLMENT_ALREADY_EXISTS',
-          message: 'Bạn đã đăng ký môn học này trong học kỳ này rồi.',
-        },
-      });
+      return {
+        student_id: existing.student_id,
+        course_id: existing.course_id,
+        semester_id: existing.semester_id,
+        enrolled_at: existing.enrolled_at,
+      };
     }
 
     // 4. Save
