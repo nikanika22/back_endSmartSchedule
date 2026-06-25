@@ -229,6 +229,17 @@ export class SchedulesService {
           await this.ScheduleClassRepository.save(scheduleClasses);
         }
       }
+
+      responseData.schedules = responseData.schedules.map((schedule: any) => {
+        schedule.classes = schedule.classes.map((cls: any) => {
+          const matchedCourse = courses.find((c) => c.course_id === cls.course_id);
+          return {
+            ...cls,
+            course_name: matchedCourse ? matchedCourse.course_name : null,
+          };
+        });
+        return schedule;
+      });
     }
 
     return responseData;
