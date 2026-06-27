@@ -92,6 +92,16 @@ export class SchedulesService {
       });
     }
     
+    if (!classes || classes.length === 0) {
+      throw new NotFoundException({
+        success: false,
+        error: {
+          code: 'CLASS_NOT_FOUND',
+          message: 'Không tìm thấy lớp học nào mở cho các môn đã đăng ký trong học kỳ này.',
+        },
+      });
+    }
+    
     const body = {
       student_id: student_id,
       semester_id: dto.semester_id,
@@ -152,7 +162,10 @@ export class SchedulesService {
     schedule.is_selected = true;
     schedule.is_draft = false;
 
-    return await this.ScheduleRepository.save(schedule);
+    await this.ScheduleRepository.save(schedule);
+    
+    // Trả về kèm relations để FE hiển thị được lịch
+    return await this.findOne(student_id, schedule.schedule_id);
   }
 
   async generateSchedule(student_id: string, dto: GenerateScheduleDto) {
@@ -208,6 +221,16 @@ export class SchedulesService {
       });
     }
     
+    if (!classes || classes.length === 0) {
+      throw new NotFoundException({
+        success: false,
+        error: {
+          code: 'CLASS_NOT_FOUND',
+          message: 'Không tìm thấy lớp học nào mở cho các môn đã đăng ký trong học kỳ này.',
+        },
+      });
+    }
+    
     const body = {
       student_id: student_id,
       semester_id: dto.semester_id,
@@ -260,6 +283,9 @@ export class SchedulesService {
         });
 
         const savedSchedule = await queryRunner.manager.save(newSchedule);
+        
+        // Gán schedule_id vừa tạo vào object để trả về cho Frontend
+        sched.schedule_id = savedSchedule.schedule_id;
 
         if (sched.classes && sched.classes.length > 0) {
           const scheduleClasses = sched.classes.map((cls: any) => {
@@ -357,7 +383,7 @@ export class SchedulesService {
       where: {
         student_id: student_id,
       },
-      relations: ['scheduleClasses'],
+      relations: ['scheduleClasses', 'scheduleClasses.class'],
     });
   }
 
@@ -367,7 +393,7 @@ export class SchedulesService {
         schedule_id: id,
         student_id: student_id,
       },
-      relations: ['scheduleClasses'],
+      relations: ['scheduleClasses', 'scheduleClasses.class'],
     });
     if (!schedule) {
       throw new NotFoundException({

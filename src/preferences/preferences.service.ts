@@ -65,15 +65,12 @@ export class PreferencesService {
     }
 
     const pref_id = preference.pref_id;
-    const existingDays = await this.avoidDayRepository.find({
-      where: { pref_id },
-    });
-    const existingDayNums = existingDays.map((d) => d.day_of_week);
+    
+    // Xoá toàn bộ ngày bận cũ của sinh viên này để thay thế bằng danh sách mới
+    await this.avoidDayRepository.delete({ pref_id });
 
-    const newDaysToInsert = dto.days.filter((d) => !existingDayNums.includes(d));
-
-    if (newDaysToInsert.length > 0) {
-      const entities = newDaysToInsert.map((day) => {
+    if (dto.days && dto.days.length > 0) {
+      const entities = dto.days.map((day) => {
         return this.avoidDayRepository.create({
           pref_id,
           day_of_week: day,

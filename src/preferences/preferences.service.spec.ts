@@ -162,7 +162,7 @@ describe('PreferencesService', () => {
       avoidDayRepository.create.mockReturnValue({ pref_id: 2, day_of_week: 4 } as any);
       avoidDayRepository.save.mockResolvedValue([] as any);
 
-      const returnPref = { pref_id: 2, student_id: 'SV002', avoid_days: [{ pref_id: 2, day_of_week: 4 }] };
+      const returnPref = { pref_id: 2, student_id: 'SV002', avoid_days: [{ pref_id: 2, day_of_week: 4 }] } as any;
       preferenceRepository.findOne.mockResolvedValueOnce(returnPref);
 
       const result = await service.addAvoidDays('SV002', { days: [4] });
