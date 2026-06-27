@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, DataSource } from 'typeorm';
 import { Schedule } from './entities/schedule.entity';
 import { ScheduleClass } from './entities/schedule-classes.entity';
 import { Preference } from 'src/preferences/entities/preference.entity';
@@ -18,12 +18,11 @@ import { SaveScheduleDto } from './dto/save-schedule.dto';
 @Injectable()
 export class SchedulesService {
   constructor(
+    private readonly dataSource: DataSource,
+
     private readonly engineService: EngineService,
     @InjectRepository(Schedule)
     private readonly ScheduleRepository: Repository<Schedule>,
-
-    @InjectRepository(ScheduleClass)
-    private readonly ScheduleClassRepository: Repository<ScheduleClass>,
 
     @InjectRepository(Preference)
     private readonly PreferenceRepository: Repository<Preference>,
@@ -58,6 +57,8 @@ export class SchedulesService {
       });
     }
 
+    await this.getSemeterById(dto.semester_id);
+
     const enrollments = await this.EnrollmentRepository.find({
       where: {
         student_id: student_id,
@@ -82,6 +83,14 @@ export class SchedulesService {
         semester_id: dto.semester_id,
       },
     });
+
+    const missingCourse = courses.find(c => !classes.some(cls => cls.course_id === c.course_id));
+    if (missingCourse) {
+      throw new BadRequestException({
+        success: false,
+        error: { code: 'COURSE_HAS_NO_CLASSES', message: `Môn học ${missingCourse.course_name} không có lớp mở trong học kỳ này` }
+      });
+    }
     
     const body = {
       student_id: student_id,
@@ -134,7 +143,14 @@ export class SchedulesService {
       })
     }
 
+    await this.ScheduleRepository.update({
+      student_id: student_id,
+      semester_id: dto.semester_id,
+      is_selected: true
+    }, {is_selected: false, is_draft: true});
+
     schedule.is_selected = true;
+    schedule.is_draft = false;
 
     return await this.ScheduleRepository.save(schedule);
   }
@@ -152,6 +168,8 @@ export class SchedulesService {
         error: { code: 'STUDENT_NOT_FOUND', message: 'Không tìm thấy sinh viên' }
       });
     }
+
+    await this.getSemeterById(dto.semester_id);
 
     const preference = await this.getPreference(student_id);
     const preferenceAvoidDay = preference.avoid_days;
@@ -181,6 +199,14 @@ export class SchedulesService {
         semester_id: dto.semester_id,
       },
     });
+
+    const missingCourse = courses.find(c => !classes.some(cls => cls.course_id === c.course_id));
+    if (missingCourse) {
+      throw new BadRequestException({
+        success: false,
+        error: { code: 'COURSE_HAS_NO_CLASSES', message: `Môn học ${missingCourse.course_name} không có lớp mở trong học kỳ này` }
+      });
+    }
     
     const body = {
       student_id: student_id,
@@ -197,15 +223,31 @@ export class SchedulesService {
 
     const responseData = await this.engineService.generateSchedules(body);
 
-    await this.ScheduleRepository.delete({ 
-      student_id: student_id, 
-      semester_id: dto.semester_id, 
-      is_draft: true 
-    });
+    if (!responseData || !responseData.schedules || responseData.schedules.length === 0) {
+      throw new BadRequestException({
+        success: false,
+        error: {
+          code: 'ZERO_SOLUTIONS',
+          message: 'Không tìm được thời khóa biểu nào phù hợp. Vui lòng nới lỏng thiết lập tránh ngày.'
+        }
+      });
+    }
 
-    if (responseData && responseData.schedules && responseData.schedules.length > 0) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      await queryRunner.manager.delete(Schedule, { 
+        student_id: student_id, 
+        semester_id: dto.semester_id, 
+        is_draft: true 
+      });
+
+      const allScheduleClasses: ScheduleClass[] = [];
+
       for (const sched of responseData.schedules) {
-        const newSchedule = this.ScheduleRepository.create({
+        const newSchedule = queryRunner.manager.create(Schedule, {
           student_id: student_id,
           semester_id: dto.semester_id,
           score_total: sched.score_total,
@@ -217,30 +259,41 @@ export class SchedulesService {
           is_active: false,
         });
 
-        const savedSchedule = await this.ScheduleRepository.save(newSchedule);
+        const savedSchedule = await queryRunner.manager.save(newSchedule);
 
         if (sched.classes && sched.classes.length > 0) {
           const scheduleClasses = sched.classes.map((cls: any) => {
-            return this.ScheduleClassRepository.create({
+            return queryRunner.manager.create(ScheduleClass, {
               schedule_id: savedSchedule.schedule_id,
               class_id: cls.class_id,
             });
           });
-          await this.ScheduleClassRepository.save(scheduleClasses);
+          allScheduleClasses.push(...scheduleClasses);
         }
       }
 
-      responseData.schedules = responseData.schedules.map((schedule: any) => {
-        schedule.classes = schedule.classes.map((cls: any) => {
-          const matchedCourse = courses.find((c) => c.course_id === cls.course_id);
-          return {
-            ...cls,
-            course_name: matchedCourse ? matchedCourse.course_name : null,
-          };
-        });
-        return schedule;
-      });
+      if (allScheduleClasses.length > 0) {
+        await queryRunner.manager.save(allScheduleClasses);
+      }
+
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
+
+    responseData.schedules = responseData.schedules.map((schedule: any) => {
+      schedule.classes = schedule.classes.map((cls: any) => {
+        const matchedCourse = courses.find((c) => c.course_id === cls.course_id);
+        return {
+          ...cls,
+          course_name: matchedCourse ? matchedCourse.course_name : null,
+        };
+      });
+      return schedule;
+    });
 
     return responseData;
   }
