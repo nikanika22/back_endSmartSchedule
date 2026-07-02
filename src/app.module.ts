@@ -20,18 +20,6 @@ import { SchedulesModule } from './schedules/schedules.module';
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',
-      url: process.env.DATABASE_URL,
-      host: process.env.DATABASE_URL ? undefined : process.env.DATABASE_HOST,
-      port: process.env.DATABASE_URL ? undefined : Number(process.env.DATABASE_PORT ?? 5432),
-      username: process.env.DATABASE_URL ? undefined : process.env.DATABASE_USER,
-      password: process.env.DATABASE_URL ? undefined : process.env.DATABASE_PASSWORD,
-      database: process.env.DATABASE_URL ? undefined : process.env.DATABASE_NAME,
-      ssl:
-        process.env.DATABASE_URL ||
-        process.env.DATABASE_SSLMODE === 'require' ||
-        process.env.DATABASE_HOST?.includes('neon.tech')
-          ? { rejectUnauthorized: false }
-          : false,
       ...(process.env.DATABASE_URL
         ? {
             url: process.env.DATABASE_URL,
