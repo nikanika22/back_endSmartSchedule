@@ -1,17 +1,16 @@
-import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, UseGuards, Request } from '@nestjs/common';
 import { EnrollmentsService } from './enrollments.service';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
-@ApiTags('Enrollments') // Gom nhóm trên Swagger
-@ApiBearerAuth() // Báo Swagger là toàn bộ API ở đây cần Token
-@UseGuards(JwtAuthGuard) // Bảo mật thực tế: Toàn bộ API ở đây cần Token
+@ApiTags('Enrollments')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('enrollments')
 export class EnrollmentsController {
   constructor(private readonly enrollmentsService: EnrollmentsService) {}
 
-  // Không cần @UseGuards ở đây nữa vì Class đã lo rồi
   @Post()
   async create(
     @Request() req: any,
@@ -26,6 +25,28 @@ export class EnrollmentsController {
       success: true,
       data: result,
       message: 'Đăng ký môn học thành công',
+    };
+  }
+
+  // GET /enrollments/my → Lấy danh sách môn học đã đăng ký (học kỳ active)
+  @Get('my')
+  async getMyEnrollments(@Request() req: any) {
+    const student_id = req.user.student_id;
+    const data = await this.enrollmentsService.getMyEnrollments(student_id);
+    return {
+      success: true,
+      data,
+    };
+  }
+
+  // DELETE /enrollments/my → Xóa toàn bộ enrollment của student trong học kỳ active
+  @Delete('my')
+  async deleteMyEnrollments(@Request() req: any) {
+    const student_id = req.user.student_id;
+    await this.enrollmentsService.deleteMyEnrollments(student_id);
+    return {
+      success: true,
+      message: 'Đã xóa toàn bộ đăng ký môn học',
     };
   }
 }
