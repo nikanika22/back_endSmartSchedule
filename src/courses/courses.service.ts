@@ -86,4 +86,9 @@ export class CoursesService {
             throw error; 
         }
     }
+
+    async getCourseQuantity() {
+        const courses = await this.courseRepository.count();
+        return courses;
+    }
 }

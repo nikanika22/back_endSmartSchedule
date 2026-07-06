@@ -3,7 +3,6 @@ import {
     Controller,
     Delete,
     Get,
-    HttpCode,
     Param,
     Patch,
     Post,
@@ -57,5 +56,10 @@ export class CoursesController {
     @Delete(':id')
     remove(@Param('id') id: string) {
         return this.coursesService.remove(id);
+    }
+
+    @Get('quantity')
+    getCourseQuantity() {
+        return this.coursesService.getCourseQuantity();
     }
 }
