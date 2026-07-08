@@ -193,9 +193,15 @@ export class SchedulesService {
       await queryRunner.release();
     }
 
+    const activeSemester = await this.getSemeter();
+
     responseData.schedules = responseData.schedules.map((schedule: any) => {
       return {
         schedule_id: schedule.schedule_id,
+        start_time: activeSemester.start_date,
+        end_time: activeSemester.end_date,
+        is_recommended: schedule.is_recommended,
+        algorithm: schedule.algorithm,
         score_total: schedule.score_total,
         classes: schedule.classes.map((cls: any) => {
           const matchedCourse = courses.find(
