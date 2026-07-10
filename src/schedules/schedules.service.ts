@@ -11,7 +11,6 @@ import { Preference } from 'src/preferences/entities/preference.entity';
 import { Semester } from 'src/semesters/entities/semester.entity';
 import { ClassEntity } from 'src/classes/entities/class.entity';
 import { Enrollment } from 'src/enrollments/entities/enrollment.entity';
-import { GenerateScheduleDto } from './dto/generate-schedule.dto';
 import { Student } from 'src/students/entities/student.entity';
 import { PersonalEvent } from 'src/personal-events/entities/personal-event.entity';
 import { EngineService } from './engine/engine.service';
@@ -45,7 +44,9 @@ export class SchedulesService {
     private readonly PersonalEventRepository: Repository<PersonalEvent>,
   ) {}
 
-  async detectConflict(student_id: string, dto: GenerateScheduleDto) {
+  private readonly MAX_SOLUTIONS = 500;
+
+  async detectConflict(student_id: string) {
     const { classes, semester_id } = await this.getClassesByStudentId(student_id);
 
     const body = {
@@ -102,7 +103,7 @@ export class SchedulesService {
     return await this.findSelectedBySemester(student_id);
   }
 
-  async generateSchedule(student_id: string, dto: GenerateScheduleDto) {
+  async generateSchedule(student_id: string) {
     const { courses, classes, semester_id } = await this.getClassesByStudentId(student_id);
 
     const preference = await this.getPreference(student_id);
@@ -119,7 +120,7 @@ export class SchedulesService {
       },
       avoid_days: (preferenceAvoidDay ?? []).map((d) => d.day_of_week),
       personal_events: personalEvents,
-      max_solutions: dto.max_solutions,
+      max_solutions: this.MAX_SOLUTIONS,
     };
 
     const responseData = await this.engineService.generateSchedules(body);
