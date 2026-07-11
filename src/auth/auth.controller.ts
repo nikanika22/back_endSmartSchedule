@@ -18,6 +18,7 @@ import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 import { CreateStudentDto } from 'src/students/dto/create-student.dto';
 import { ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { LoginDTO } from './dto/login.dto';
+import { Student } from 'src/students/entities/student.entity';
 
 @Controller('auth')
 export class AuthController {
@@ -65,13 +66,15 @@ export class AuthController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  me(@Request() req: any) {
+ async me(@Request() req: any) {
+    const student:Student |null= await this.studentsService.findByEmail(req.user.email);
     return {
       success: true,
       data: {
-        student_id: req.user.student_id,
-        email: req.user.email,
-        role: req.user.role,
+        student_id: student?.student_id,
+        email: student?.email,
+        full_name: student?.name,
+        role: student?.role,
       },
     };
   }

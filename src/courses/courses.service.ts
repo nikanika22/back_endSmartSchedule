@@ -45,6 +45,7 @@ export class CoursesService {
     async findOne(id: string): Promise<Course> {
         const course = await this.courseRepository.findOne({
             where: { course_id: id },
+            relations: ['classes'],
         });
 
         if (!course) {
