@@ -202,8 +202,11 @@ export class SchedulesService {
         start_time: activeSemester.start_date,
         end_time: activeSemester.end_date,
         is_recommended: schedule.is_recommended,
-        algorithm: schedule.algorithm,
+        algorithm_tag: schedule.algorithm_tag,
         score_total: schedule.score_total,
+        score_break: schedule.score_break,
+        score_pref: schedule.score_pref,
+        score_balance: schedule.score_balance,
         classes: schedule.classes.map((cls: any) => {
           const matchedCourse = courses.find(
             (c) => c.course_id === cls.course_id,
