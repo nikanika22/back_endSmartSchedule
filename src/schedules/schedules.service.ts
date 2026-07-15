@@ -161,6 +161,7 @@ export class SchedulesService {
           score_break: sched.score_break,
           score_pref: sched.score_pref,
           score_balance: sched.score_balance,
+          algorithm: sched.algorithm_tag,
           is_draft: true,
           is_selected: false,
           is_active: false,
@@ -252,6 +253,37 @@ export class SchedulesService {
       });
     }
     return schedule;
+  }
+
+  async getAlgorithmStats() {
+    const cspCount = await this.ScheduleRepository.count({
+      where: {
+        is_selected: true,
+        algorithm: 'CSP',
+      },
+    });
+
+    const orToolsCount = await this.ScheduleRepository.count({
+      where: {
+        is_selected: true,
+        algorithm: 'OR-Tools',
+      },
+    });
+
+    const total = await this.ScheduleRepository.count({
+      where: {
+        is_selected: true,
+      }
+    });
+
+    return {
+      success: true,
+      data: [
+        { name: 'CSP', count: cspCount },
+        { name: 'OR-Tools', count: orToolsCount },
+        { total: total }
+      ]
+    };
   }
 
   // helpers

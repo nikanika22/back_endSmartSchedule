@@ -34,4 +34,9 @@ export class SchedulesController {
   findSelectedBySemester(@Request() req: any) {
     return this.schedulesService.findSelectedBySemester(req.user.student_id);
   }
+
+  @Get('stats')
+  getAlgorithmStats() {
+    return this.schedulesService.getAlgorithmStats();
+  }
 }
