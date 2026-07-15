@@ -32,6 +32,7 @@ export class AuthService {
       access_token,
       expires_at: expiresAt.toISOString(),
       token_type: 'Bearer',
+      role: user.role,
     };
   }
 
