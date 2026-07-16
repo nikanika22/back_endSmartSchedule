@@ -277,12 +277,11 @@ export class SchedulesService {
     });
 
     return {
-      success: true,
       data: [
-        { name: 'CSP', count: cspCount },
-        { name: 'OR-Tools', count: orToolsCount },
-        { total: total }
-      ]
+        { algorithm: 'CSP', count: cspCount },
+        { algorithm: 'OR-Tools', count: orToolsCount },
+      ],
+      total: total
     };
   }
 
