@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Body,
   Request,
   UseGuards,
@@ -16,6 +17,7 @@ import { StudentsService } from 'src/students/students.service';
 import { LocalAuthGuard } from 'src/guards/local.auth.guard';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 import { CreateStudentDto } from 'src/students/dto/create-student.dto';
+import { UpdateStudentDto } from 'src/students/dto/update-student.dto';
 import { ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { LoginDTO } from './dto/login.dto';
 import { Student } from 'src/students/entities/student.entity';
@@ -75,6 +77,24 @@ export class AuthController {
         email: student?.email,
         full_name: student?.name,
         role: student?.role,
+      },
+    };
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Patch('me')
+  @UsePipes(new ValidationPipe({ whitelist: true }))
+  async updateMe(@Request() req: any, @Body() userData: UpdateStudentDto) {
+    const updatedUser = await this.studentsService.updateUser(req.user.student_id, userData);
+    return {
+      success: true,
+      message: 'Cập nhật thông tin thành công.',
+      data: {
+        student_id: updatedUser.student_id,
+        email: updatedUser.email,
+        full_name: updatedUser.name,
+        role: updatedUser.role,
       },
     };
   }

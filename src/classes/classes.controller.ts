@@ -25,6 +25,12 @@ export class ClassesController {
         return this.classesService.findAll();
     }
 
+    // Phải đặt TRƯỚC @Get(':id') để tránh route conflict
+    @Get('quantity')
+    getClassQuantity() {
+        return this.classesService.getClassQuantity();
+    }
+
     @Get(':id')
     findOne(@Param('id') id: string) {
         return this.classesService.findOne(id);

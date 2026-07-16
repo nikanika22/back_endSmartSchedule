@@ -113,4 +113,8 @@ export class ClassesService {
             throw error;
         }
     }
+
+    async getClassQuantity(): Promise<number> {
+        return await this.classRepository.count();
+    }
 }

@@ -27,6 +27,11 @@ export class SemestersController {
     return this.semestersService.findOne(+id);
   }
 
+  @Patch(':id/activate')
+  activateSemester(@Param('id') id: string) {
+    return this.semestersService.activateSemester(id);
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateSemesterDto: UpdateSemesterDto) {
     return this.semestersService.update(+id, updateSemesterDto);

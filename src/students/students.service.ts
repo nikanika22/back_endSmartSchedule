@@ -72,8 +72,48 @@ export class StudentsService {
     return `This action returns a #${id} student`;
   }
 
-  update(id: number, updateStudentDto: UpdateStudentDto) {
-    return `This action updates a #${id} student`;
+  async updateUser(student_id: string, userData: UpdateStudentDto) {
+    const student = await this.studentRepository.findOneBy({ student_id });
+    if (!student) {
+      throw new ConflictException({
+        success: false,
+        error: {
+          code: 'STUDENT_NOT_FOUND',
+          message: 'Không tìm thấy sinh viên.',
+        },
+      });
+    }
+
+    if (userData.name) {
+      student.name = userData.name;
+    }
+
+    if (userData.password) {
+      if (!userData.old_password) {
+        throw new ConflictException({
+          success: false,
+          error: {
+            code: 'AUTH_MISSING_OLD_PASSWORD',
+            message: 'Vui lòng nhập mật khẩu cũ để đổi mật khẩu.',
+          },
+        });
+      }
+
+      const isPasswordValid = await bcrypt.compare(userData.old_password, student.password_hash);
+      if (!isPasswordValid) {
+        throw new ConflictException({
+          success: false,
+          error: {
+            code: 'AUTH_INVALID_OLD_PASSWORD',
+            message: 'Mật khẩu cũ không chính xác.',
+          },
+        });
+      }
+
+      student.password_hash = await bcrypt.hash(userData.password, 10);
+    }
+
+    return await this.studentRepository.save(student);
   }
 
   remove(id: number) {
