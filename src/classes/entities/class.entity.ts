@@ -26,7 +26,7 @@ export class ClassEntity {
     course_id!: string;
 
     // FK → semesters
-    @ManyToOne(() => Semester, { nullable: false, onDelete: 'RESTRICT' })
+    @ManyToOne(() => Semester, { nullable: false, onDelete: 'RESTRICT', cascade: true })
     @JoinColumn({ name: 'semester_id', referencedColumnName: 'semester_id' })
     semester!: Semester;
 
