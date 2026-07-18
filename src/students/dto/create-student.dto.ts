@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, Matches, MinLength, MaxLength } from 'class-validator';
+import { IsString, Matches, MinLength, MaxLength, IsOptional, IsEnum } from 'class-validator';
+import { UserRole } from '../entities/student.entity';
 
 export class CreateStudentDto {
   @ApiProperty({
@@ -38,4 +39,14 @@ export class CreateStudentDto {
     message: 'Mật khẩu phải có ít nhất 1 chữ hoa và 1 số.',
   })
   password!: string;
+
+  @ApiProperty({
+    example: UserRole.STUDENT,
+    enum: UserRole,
+    required: false,
+    description: 'Quyền của user. Nếu không truyền sẽ mặc định là student',
+  })
+  @IsOptional()
+  @IsEnum(UserRole)
+  role?: UserRole;
 }

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { v4 as uuidv4 } from 'uuid';
-import { StudentsService } from 'src/students/students.service';
+import { StudentsService } from '../students/students.service';
 import { BlacklistService } from './blacklist.service';
 
 

@@ -13,14 +13,14 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
-import { StudentsService } from 'src/students/students.service';
-import { LocalAuthGuard } from 'src/guards/local.auth.guard';
-import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
-import { CreateStudentDto } from 'src/students/dto/create-student.dto';
-import { UpdateStudentDto } from 'src/students/dto/update-student.dto';
+import { StudentsService } from '../students/students.service';
+import { LocalAuthGuard } from '../guards/local.auth.guard';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { CreateStudentDto } from '../students/dto/create-student.dto';
+import { UpdateStudentDto } from '../students/dto/update-student.dto';
 import { ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { LoginDTO } from './dto/login.dto';
-import { Student } from 'src/students/entities/student.entity';
+import { Student } from '../students/entities/student.entity';
 
 @Controller('auth')
 export class AuthController {

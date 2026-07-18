@@ -2,12 +2,12 @@ import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { BlacklistService } from './blacklist.service';
-import { StudentsModule } from 'src/students/students.module';
+import { StudentsModule } from '../students/students.module';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { LocalStrategy } from 'src/passport/local.strategy';
-import { JwtStrategy } from 'src/passport/jwt.strategy';
+import { LocalStrategy } from '../passport/local.strategy';
+import { JwtStrategy } from '../passport/jwt.strategy';
 import { TokenBlacklist } from './entities/token-blacklist.entity';
 
 @Module({

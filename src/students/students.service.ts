@@ -48,6 +48,7 @@ export class StudentsService {
       name: userData.name,
       email: userData.email,
       password_hash: passwordHash,
+      role: userData.role, // Nếu không truyền, mặc định sẽ là 'student' do TypeORM xử lý
       created_at: new Date(),
     });
 

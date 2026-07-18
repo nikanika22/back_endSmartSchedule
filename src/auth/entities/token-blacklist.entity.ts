@@ -7,7 +7,7 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
-import { Student } from 'src/students/entities/student.entity';
+import { Student } from '../../students/entities/student.entity';
 
 @Entity('token_blacklist')
 @Index(['expiresAt'])
