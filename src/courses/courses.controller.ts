@@ -3,7 +3,6 @@ import {
     Controller,
     Delete,
     Get,
-    HttpCode,
     Param,
     Patch,
     Post,
@@ -36,6 +35,12 @@ export class CoursesController {
         return this.coursesService.findAll();
     }
 
+    // Phải đặt TRƯỚC @Get(':id') để tránh route conflict
+    @Get('quantity')
+    getCourseQuantity() {
+        return this.coursesService.getCourseQuantity();
+    }
+
     @Get(':id')
     findOne(@Param('id') id: string) {
         return this.coursesService.findOne(id);
@@ -58,4 +63,5 @@ export class CoursesController {
     remove(@Param('id') id: string) {
         return this.coursesService.remove(id);
     }
+
 }

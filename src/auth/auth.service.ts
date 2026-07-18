@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { StudentsService } from 'src/students/students.service';
 import { BlacklistService } from './blacklist.service';
 
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -31,6 +32,7 @@ export class AuthService {
       access_token,
       expires_at: expiresAt.toISOString(),
       token_type: 'Bearer',
+      role: user.role,
     };
   }
 

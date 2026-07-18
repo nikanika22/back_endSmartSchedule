@@ -45,6 +45,7 @@ export class CoursesService {
     async findOne(id: string): Promise<Course> {
         const course = await this.courseRepository.findOne({
             where: { course_id: id },
+            relations: ['classes'],
         });
 
         if (!course) {
@@ -85,5 +86,10 @@ export class CoursesService {
             }
             throw error; 
         }
+    }
+
+    async getCourseQuantity() {
+        const courses = await this.courseRepository.count();
+        return courses;
     }
 }

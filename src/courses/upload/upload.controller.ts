@@ -1,0 +1,74 @@
+import {
+  UseInterceptors,
+  UploadedFile,
+  Post,
+  UseGuards,
+  Controller,
+  BadRequestException,
+} from '@nestjs/common';
+import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
+
+import { ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { UploadService } from './upload.service';
+import { FileInterceptor } from '@nestjs/platform-express';
+
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+@Controller('courses')
+export class UploadController {
+  constructor(private readonly uploadService: UploadService) {}
+
+  @Post('upload-courses')
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  async importCoursesExcel(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException({
+        success: false,
+        error: {
+          code: 'FILE_NOT_FOUND',
+          message: 'Không tìm thấy file excel',
+        },
+      });
+    }
+    return this.uploadService.importCoursesFromExcel(file.buffer);
+  }
+
+  @Post('upload-classes')
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  async importClassesExcel(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException({
+        success: false,
+        error: {
+          code: 'FILE_NOT_FOUND',
+          message: 'Không tìm thấy file excel',
+        },
+      });
+    }
+    return this.uploadService.importClassesFromExcel(file.buffer);
+  }
+}

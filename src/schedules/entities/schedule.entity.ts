@@ -76,6 +76,9 @@ export class Schedule {
   })
   score_balance!: number;
 
+  @Column({ name: 'algorithm', type: 'varchar', length: 50, nullable: true })
+  algorithm!: string;
+
   @Column({ name: 'is_draft', type: 'boolean', default: true })
   is_draft!: boolean;
 

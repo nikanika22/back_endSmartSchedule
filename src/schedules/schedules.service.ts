@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { CreateScheduleDto } from './dto/create-schedule.dto';
-import { UpdateScheduleDto } from './dto/update-schedule.dto';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, DataSource } from 'typeorm';
 import { Schedule } from './entities/schedule.entity';
@@ -9,7 +11,6 @@ import { Preference } from 'src/preferences/entities/preference.entity';
 import { Semester } from 'src/semesters/entities/semester.entity';
 import { ClassEntity } from 'src/classes/entities/class.entity';
 import { Enrollment } from 'src/enrollments/entities/enrollment.entity';
-import { GenerateScheduleDto } from './dto/generate-schedule.dto';
 import { Student } from 'src/students/entities/student.entity';
 import { PersonalEvent } from 'src/personal-events/entities/personal-event.entity';
 import { EngineService } from './engine/engine.service';
@@ -43,68 +44,14 @@ export class SchedulesService {
     private readonly PersonalEventRepository: Repository<PersonalEvent>,
   ) {}
 
-  async detectConflict(student_id: string, dto: GenerateScheduleDto) {
-    const student = await this.StudentRepository.findOne({
-      where: {
-        student_id: student_id,
-      },
-    });
+  private readonly MAX_SOLUTIONS = 500;
 
-    if (!student) {
-      throw new NotFoundException({
-        success: false,
-        error: { code: 'STUDENT_NOT_FOUND', message: 'Không tìm thấy sinh viên' }
-      });
-    }
+  async detectConflict(student_id: string) {
+    const { classes, semester_id } = await this.getClassesByStudentId(student_id);
 
-    await this.getSemeterById(dto.semester_id);
-
-    const enrollments = await this.EnrollmentRepository.find({
-      where: {
-        student_id: student_id,
-        semester_id: dto.semester_id,
-      },
-      relations: ['course'],
-    });
-
-    if (!enrollments || enrollments.length === 0) {
-      throw new NotFoundException({
-        success: false,
-        error: { code: 'ENROLLMENT_NOT_FOUND', message: 'Không tìm thấy môn học nào đăng ký cho học kỳ này' }
-      });
-    }
-
-    const courses = enrollments.map((enrollment) => enrollment.course);
-    const courseIds = courses.map((course) => course.course_id);
-
-    const classes = await this.ClassRepository.find({
-      where: {
-        course_id: In(courseIds),
-        semester_id: dto.semester_id,
-      },
-    });
-
-    const missingCourse = courses.find(c => !classes.some(cls => cls.course_id === c.course_id));
-    if (missingCourse) {
-      throw new BadRequestException({
-        success: false,
-        error: { code: 'COURSE_HAS_NO_CLASSES', message: `Môn học ${missingCourse.course_name} không có lớp mở trong học kỳ này` }
-      });
-    }
-    
-    if (!classes || classes.length === 0) {
-      throw new NotFoundException({
-        success: false,
-        error: {
-          code: 'CLASS_NOT_FOUND',
-          message: 'Không tìm thấy lớp học nào mở cho các môn đã đăng ký trong học kỳ này.',
-        },
-      });
-    }
-    
     const body = {
       student_id: student_id,
-      semester_id: dto.semester_id,
+      semester_id: semester_id,
       classes: classes,
     };
 
@@ -112,128 +59,60 @@ export class SchedulesService {
   }
 
   async saveSchedule(student_id: string, dto: SaveScheduleDto) {
-    const student = await this.StudentRepository.findOne({
-      where: {
-        student_id: student_id
-      }
-    });
+    await this.getStudentById(student_id);
 
-    if (!student) {
-      throw new NotFoundException({
-        success: false,
-        error: {code: 'STUDENT_NOT_FOUND', message: 'Không tìm thấy sinh viên'}
-      })
-    }
-
-    const semester = await this.SemesterRepository.findOne({
-      where: {
-        semester_id: dto.semester_id
-      }
-    });
-
-    if (!semester) {
-      throw new NotFoundException({
-        success: false,
-        error: {code: 'SEMESTER_NOT_FOUND', message: 'Không tìm thấy học kỳ'}
-      })
-    }
+    const activeSemester = await this.getSemeter();
+    const semester_id = activeSemester.semester_id;
 
     const schedule = await this.ScheduleRepository.findOne({
       where: {
         schedule_id: dto.schedule_id,
         student_id: student_id,
-        semester_id: dto.semester_id
-      }
+        semester_id: semester_id,
+        is_draft: true,
+      },
     });
 
     if (!schedule) {
       throw new NotFoundException({
         success: false,
-        error: {code: 'SCHEDULE_NOT_FOUND', message: 'Không tìm thấy thời khóa biểu'}
-      })
-    }
-
-    await this.ScheduleRepository.update({
-      student_id: student_id,
-      semester_id: dto.semester_id,
-      is_selected: true
-    }, {is_selected: false, is_draft: true});
-
-    schedule.is_selected = true;
-    schedule.is_draft = false;
-
-    await this.ScheduleRepository.save(schedule);
-    
-    // Trả về kèm relations để FE hiển thị được lịch
-    return await this.findOne(student_id, schedule.schedule_id);
-  }
-
-  async generateSchedule(student_id: string, dto: GenerateScheduleDto) {
-    const student = await this.StudentRepository.findOne({
-      where: {
-        student_id: student_id,
-      },
-    });
-
-    if (!student) {
-      throw new NotFoundException({
-        success: false,
-        error: { code: 'STUDENT_NOT_FOUND', message: 'Không tìm thấy sinh viên' }
+        error: {
+          code: 'SCHEDULE_NOT_FOUND',
+          message: 'Không tìm thấy thời khóa biểu',
+        },
       });
     }
 
-    await this.getSemeterById(dto.semester_id);
+    await this.ScheduleRepository.update(
+      {
+        student_id: student_id,
+        semester_id: semester_id,
+        is_selected: true,
+        is_active: true,
+      },
+      { is_selected: false, is_draft: true, is_active: false },
+    );
+
+    schedule.is_selected = true;
+    schedule.is_draft = false;
+    schedule.is_active = true;
+
+    await this.ScheduleRepository.save(schedule);
+
+    // Trả về kèm relations để FE hiển thị được lịch
+    return await this.findSelectedBySemester(student_id);
+  }
+
+  async generateSchedule(student_id: string) {
+    const { courses, classes, semester_id } = await this.getClassesByStudentId(student_id);
 
     const preference = await this.getPreference(student_id);
     const preferenceAvoidDay = preference.avoid_days;
     const personalEvents = await this.getPersonalEvent(student_id);
 
-    const enrollments = await this.EnrollmentRepository.find({
-      where: {
-        student_id: student_id,
-        semester_id: dto.semester_id,
-      },
-      relations: ['course'],
-    });
-
-    if (!enrollments || enrollments.length === 0) {
-      throw new NotFoundException({
-        success: false,
-        error: { code: 'ENROLLMENT_NOT_FOUND', message: 'Không tìm thấy môn học nào đăng ký cho học kỳ này' }
-      });
-    }
-
-    const courses = enrollments.map((enrollment) => enrollment.course);
-    const courseIds = courses.map((course) => course.course_id);
-
-    const classes = await this.ClassRepository.find({
-      where: {
-        course_id: In(courseIds),
-        semester_id: dto.semester_id,
-      },
-    });
-
-    const missingCourse = courses.find(c => !classes.some(cls => cls.course_id === c.course_id));
-    if (missingCourse) {
-      throw new BadRequestException({
-        success: false,
-        error: { code: 'COURSE_HAS_NO_CLASSES', message: `Môn học ${missingCourse.course_name} không có lớp mở trong học kỳ này` }
-      });
-    }
-    
-    if (!classes || classes.length === 0) {
-      throw new NotFoundException({
-        success: false,
-        error: {
-          code: 'CLASS_NOT_FOUND',
-          message: 'Không tìm thấy lớp học nào mở cho các môn đã đăng ký trong học kỳ này.',
-        },
-      });
-    }
-    
     const body = {
       student_id: student_id,
-      semester_id: dto.semester_id,
+      semester_id: semester_id,
       classes: classes,
       preferences: {
         ...preference,
@@ -241,18 +120,23 @@ export class SchedulesService {
       },
       avoid_days: (preferenceAvoidDay ?? []).map((d) => d.day_of_week),
       personal_events: personalEvents,
-      max_solutions: dto.max_solutions,
+      max_solutions: this.MAX_SOLUTIONS,
     };
 
     const responseData = await this.engineService.generateSchedules(body);
 
-    if (!responseData || !responseData.schedules || responseData.schedules.length === 0) {
+    if (
+      !responseData ||
+      !responseData.schedules ||
+      responseData.schedules.length === 0
+    ) {
       throw new BadRequestException({
         success: false,
         error: {
           code: 'ZERO_SOLUTIONS',
-          message: 'Không tìm được thời khóa biểu nào phù hợp. Vui lòng nới lỏng thiết lập tránh ngày.'
-        }
+          message:
+            'Không tìm được thời khóa biểu nào phù hợp. Vui lòng nới lỏng thiết lập tránh ngày.',
+        },
       });
     }
 
@@ -261,10 +145,10 @@ export class SchedulesService {
     await queryRunner.startTransaction();
 
     try {
-      await queryRunner.manager.delete(Schedule, { 
-        student_id: student_id, 
-        semester_id: dto.semester_id, 
-        is_draft: true 
+      await queryRunner.manager.delete(Schedule, {
+        student_id: student_id,
+        semester_id: semester_id,
+        is_draft: true,
       });
 
       const allScheduleClasses: ScheduleClass[] = [];
@@ -272,18 +156,19 @@ export class SchedulesService {
       for (const sched of responseData.schedules) {
         const newSchedule = queryRunner.manager.create(Schedule, {
           student_id: student_id,
-          semester_id: dto.semester_id,
+          semester_id: semester_id,
           score_total: sched.score_total,
           score_break: sched.score_break,
           score_pref: sched.score_pref,
           score_balance: sched.score_balance,
+          algorithm: sched.algorithm_tag,
           is_draft: true,
           is_selected: false,
           is_active: false,
         });
 
         const savedSchedule = await queryRunner.manager.save(newSchedule);
-        
+
         // Gán schedule_id vừa tạo vào object để trả về cho Frontend
         sched.schedule_id = savedSchedule.schedule_id;
 
@@ -310,18 +195,94 @@ export class SchedulesService {
       await queryRunner.release();
     }
 
+    const activeSemester = await this.getSemeter();
+
     responseData.schedules = responseData.schedules.map((schedule: any) => {
-      schedule.classes = schedule.classes.map((cls: any) => {
-        const matchedCourse = courses.find((c) => c.course_id === cls.course_id);
-        return {
-          ...cls,
-          course_name: matchedCourse ? matchedCourse.course_name : null,
-        };
-      });
-      return schedule;
+      return {
+        schedule_id: schedule.schedule_id,
+        start_time: activeSemester.start_date,
+        end_time: activeSemester.end_date,
+        is_recommended: schedule.is_recommended,
+        algorithm_tag: schedule.algorithm_tag,
+        score_total: schedule.score_total,
+        score_break: schedule.score_break,
+        score_pref: schedule.score_pref,
+        score_balance: schedule.score_balance,
+        classes: schedule.classes.map((cls: any) => {
+          const matchedCourse = courses.find(
+            (c) => c.course_id === cls.course_id,
+          );
+          return {
+            class_id: cls.class_id,
+            course_id: cls.course_id,
+            course_name: matchedCourse ? matchedCourse.course_name : null,
+            day_of_week: cls.day_of_week,
+            start_time: cls.start_time,
+            end_time: cls.end_time,
+            room: cls.room,
+            instructor: cls.instructor,
+          };
+        }),
+      };
     });
 
     return responseData;
+  }
+
+  async findSelectedBySemester(student_id: string) {
+    const activeSemester = await this.getSemeter();
+    const semester_id = activeSemester.semester_id;
+
+    const schedule = await this.ScheduleRepository.findOne({
+      where: {
+        student_id: student_id,
+        semester_id: semester_id,
+        is_selected: true,
+        is_active: true,
+      },
+      relations: ['scheduleClasses', 'scheduleClasses.class'],
+    });
+
+    if (!schedule) {
+      throw new NotFoundException({
+        success: false,
+        error: {
+          code: 'SCHEDULE_NOT_FOUND',
+          message: 'Không tìm thấy thời khóa biểu',
+        },
+      });
+    }
+    return schedule;
+  }
+
+  async getAlgorithmStats() {
+    const cspCount = await this.ScheduleRepository.count({
+      where: {
+        is_selected: true,
+        algorithm: 'CSP',
+      },
+    });
+
+    const orToolsCount = await this.ScheduleRepository.count({
+      where: {
+        is_selected: true,
+        algorithm: 'OR-Tools',
+      },
+    });
+
+    const total = await this.ScheduleRepository.count({
+      where: {
+        is_selected: true,
+      }
+    });
+
+    return {
+      data: [
+        { algorithm: 'CSP', count: cspCount },
+        { algorithm: 'OR-Tools', count: orToolsCount },
+      ],
+      total: total
+    };
   }
 
   // helpers
@@ -336,7 +297,10 @@ export class SchedulesService {
     if (!preference) {
       throw new NotFoundException({
         success: false,
-        error: { code: 'PREFERENCE_NOT_FOUND', message: 'Không tìm thấy thiết lập sở thích của sinh viên' }
+        error: {
+          code: 'PREFERENCE_NOT_FOUND',
+          message: 'Không tìm thấy thiết lập sở thích của sinh viên',
+        },
       });
     }
 
@@ -353,85 +317,108 @@ export class SchedulesService {
     return personalEvents || [];
   }
 
-  async getSemeterById(semester_id: string) {
+  async getSemeter() {
     const semester = await this.SemesterRepository.findOne({
       where: {
-        semester_id: semester_id,
+        is_active: true,
       },
     });
 
     if (!semester) {
       throw new NotFoundException({
         success: false,
-        error: { code: 'SEMESTER_NOT_FOUND', message: 'Không tìm thấy học kỳ' }
+        error: {
+          code: 'SEMESTER_NOT_FOUND',
+          message: 'Không tìm thấy học kỳ nào được mở',
+        },
       });
     }
 
     return semester;
   }
 
-  async create(student_id: string, createScheduleDto: CreateScheduleDto) {
-    const newSchedule = this.ScheduleRepository.create({
-      student_id: student_id,
-      ...createScheduleDto,
-    });
-    return await this.ScheduleRepository.save(newSchedule);
-  }
-
-  async findAll(student_id: string) {
-    return await this.ScheduleRepository.find({
+  async getStudentById(student_id: string) {
+    const student = await this.StudentRepository.findOne({
       where: {
         student_id: student_id,
       },
-      relations: ['scheduleClasses', 'scheduleClasses.class'],
     });
+
+    if (!student) {
+      throw new NotFoundException({
+        success: false,
+        error: {
+          code: 'STUDENT_NOT_FOUND',
+          message: 'Không tìm thấy sinh viên',
+        },
+      });
+    }
+
+    return student;
   }
 
-  async findOne(student_id: string, id: number) {
-    const schedule = await this.ScheduleRepository.findOne({
+  async getClassesByStudentId(student_id: string) {
+    await this.getStudentById(student_id);
+
+    const activeSemester = await this.getSemeter();
+    const semester_id = activeSemester.semester_id;
+
+    const enrollments = await this.EnrollmentRepository.find({
       where: {
-        schedule_id: id,
         student_id: student_id,
+        semester_id: semester_id,
       },
-      relations: ['scheduleClasses', 'scheduleClasses.class'],
+      relations: ['course'],
     });
-    if (!schedule) {
+
+    if (!enrollments || enrollments.length === 0) {
       throw new NotFoundException({
         success: false,
-        error: { code: 'SCHEDULE_NOT_FOUND', message: `Không tìm thấy thời khóa biểu với id: ${id}` }
+        error: {
+          code: 'ENROLLMENT_NOT_FOUND',
+          message: 'Không tìm thấy môn học nào đăng ký cho học kỳ này',
+        },
       });
     }
 
-    return schedule;
-  }
+    const courses = enrollments.map((enrollment) => enrollment.course);
+    const courseIds = courses.map((course) => course.course_id);
 
-  async update(student_id: string, id: number, updateScheduleDto: UpdateScheduleDto) {
-    const schedule = await this.ScheduleRepository.preload({
-      schedule_id: id,
-      student_id: student_id,
-      ...updateScheduleDto,
+    const classes = await this.ClassRepository.find({
+      where: {
+        course_id: In(courseIds),
+        semester_id: semester_id,
+      },
     });
-    
-    if (!schedule) {
-      throw new NotFoundException({
-        success: false,
-        error: { code: 'SCHEDULE_NOT_FOUND', message: `Không tìm thấy thời khóa biểu với id: ${id}` }
-      });
-    }
-    
-    return await this.ScheduleRepository.save(schedule);
-  }
 
-  async remove(student_id: string, id: number) {
-    const schedule = await this.findOne(student_id ,id);
-
-    if (schedule.is_selected) {
+    const missingCourse = courses.find(
+      (c) => !classes.some((cls) => cls.course_id === c.course_id),
+    );
+    if (missingCourse) {
       throw new BadRequestException({
         success: false,
-        error: { code: 'SCHEDULE_IS_SELECTED', message: `Không thể xóa thời khóa biểu đã được chọn` }
+        error: {
+          code: 'COURSE_HAS_NO_CLASSES',
+          message: `Môn học ${missingCourse.course_name} không có lớp mở trong học kỳ này`,
+        },
       });
     }
 
-    return await this.ScheduleRepository.remove(schedule);
+    if (!classes || classes.length === 0) {
+      throw new NotFoundException({
+        success: false,
+        error: {
+          code: 'CLASS_NOT_FOUND',
+          message:
+            'Không tìm thấy lớp học nào mở cho các môn đã đăng ký trong học kỳ này.',
+        },
+      });
+    }
+
+    return {
+      courses,
+      classes,
+      semester_id,
+    };
   }
 }

@@ -14,6 +14,6 @@ export class CreateEnrollmentDto {
     required: false,
   })
   @IsString()
-  @IsNotEmpty()
-  semester_id!: string;
+  @IsOptional()
+  semester_id?: string;
 }

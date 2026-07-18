@@ -91,9 +91,26 @@ export class ClassesService {
         id: string,
         updateClassDto: UpdateClassDto,
     ): Promise<ClassEntity> {
-        const classEntity = await this.findOne(id);
-        Object.assign(classEntity, updateClassDto);
-        return await this.classRepository.save(classEntity);
+        await this.findOne(id);
+        
+        if (updateClassDto.course_id) {
+            const course = await this.courseRepository.findOne({ where: { course_id: updateClassDto.course_id } });
+            if (!course) {
+                throw new BadRequestException({
+                    success: false,
+                    error: {
+                        code: 'COURSE_NOT_FOUND',
+                        message: `Không tìm thấy môn học với mã: ${updateClassDto.course_id}`,
+                    },
+                });
+            }
+        }
+        
+        if (Object.keys(updateClassDto).length > 0) {
+            await this.classRepository.update(id, updateClassDto);
+        }
+
+        return await this.findOne(id);
     }
 
     async remove(id: string): Promise<void> {
@@ -112,5 +129,9 @@ export class ClassesService {
             }
             throw error;
         }
+    }
+
+    async getClassQuantity(): Promise<number> {
+        return await this.classRepository.count();
     }
 }
