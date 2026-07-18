@@ -1,4 +1,4 @@
-import { ClassEntity } from 'src/classes/entities/class.entity';
+import { ClassEntity } from '../../classes/entities/class.entity';
 import { Check, Column, Entity, OneToMany, PrimaryColumn } from 'typeorm';
 
 @Entity('courses')

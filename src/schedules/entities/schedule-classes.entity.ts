@@ -5,7 +5,7 @@ import {
   PrimaryColumn,
 } from 'typeorm';
 import { Schedule } from './schedule.entity';
-import { ClassEntity } from 'src/classes/entities/class.entity';
+import { ClassEntity } from '../../classes/entities/class.entity';
 
 @Entity('schedule_classes')
 export class ScheduleClass {

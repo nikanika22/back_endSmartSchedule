@@ -3,8 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, In } from 'typeorm'
 import * as Exceljs from 'exceljs'
 import { Course } from '../entities/course.entity'
-import { ClassEntity } from 'src/classes/entities/class.entity'
-import { Semester } from 'src/semesters/entities/semester.entity'
+import { ClassEntity } from '../../classes/entities/class.entity'
+import { Semester } from '../../semesters/entities/semester.entity'
 
 @Injectable()
 export class UploadService {

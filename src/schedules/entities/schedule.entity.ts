@@ -7,8 +7,8 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Student } from 'src/students/entities/student.entity';
-import { Semester } from 'src/semesters/entities/semester.entity';
+import { Student } from '../../students/entities/student.entity';
+import { Semester } from '../../semesters/entities/semester.entity';
 import { ScheduleClass } from './schedule-classes.entity';
 
 @Entity('schedules')

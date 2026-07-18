@@ -5,14 +5,14 @@ import { SchedulesService } from './schedules.service';
 import { SchedulesController } from './schedules.controller';
 import { Schedule } from './entities/schedule.entity';
 import { ScheduleClass } from './entities/schedule-classes.entity';
-import { Preference } from 'src/preferences/entities/preference.entity';
-import { PreferenceAvoidDay } from 'src/preferences/entities/preference-avoid-day.entity';
-import { Semester } from 'src/semesters/entities/semester.entity';
-import { Course } from 'src/courses/entities/course.entity';
-import { ClassEntity } from 'src/classes/entities/class.entity';
-import { Enrollment } from 'src/enrollments/entities/enrollment.entity';
-import { Student } from 'src/students/entities/student.entity';
-import { PersonalEvent } from 'src/personal-events/entities/personal-event.entity';
+import { Preference } from '../preferences/entities/preference.entity';
+import { PreferenceAvoidDay } from '../preferences/entities/preference-avoid-day.entity';
+import { Semester } from '../semesters/entities/semester.entity';
+import { Course } from '../courses/entities/course.entity';
+import { ClassEntity } from '../classes/entities/class.entity';
+import { Enrollment } from '../enrollments/entities/enrollment.entity';
+import { Student } from '../students/entities/student.entity';
+import { PersonalEvent } from '../personal-events/entities/personal-event.entity';
 import { EngineService } from './engine/engine.service';
 
 @Module({
