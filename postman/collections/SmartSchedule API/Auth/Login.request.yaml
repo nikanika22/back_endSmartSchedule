@@ -1,7 +1,7 @@
 $kind: http-request
 name: Login
 method: POST
-url: '{{base_url}}/auth/login'
+url: "{{base_url}}/auth/login"
 headers:
   Content-Type: application/json
 body:
@@ -9,7 +9,7 @@ body:
   content: |-
     {
       "email": "dh52200843@student.stu.edu.vn",
-      "password": "Baokhang08112004"
+      "password": "Baokhang08112004@"
     }
 description: Login and receive JWT access token. Save the access_token from the response.
 auth:
