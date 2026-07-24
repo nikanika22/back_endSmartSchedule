@@ -14,6 +14,7 @@ import { CreatePersonalEventDto } from './dto/create-personal-event.dto';
 import { UpdatePersonalEventDto } from './dto/update-personal-event.dto';
 import { PersonalEventsService } from './personal-events.service';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { AuditAction } from '../common/decorators/audit-action.decorator';
 
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
@@ -22,6 +23,7 @@ export class PersonalEventsController {
   constructor(private readonly personalEventsService: PersonalEventsService) {}
 
   @Post()
+  @AuditAction('CREATE_PERSONAL_EVENT', 'personal_event')
   create(
     @Request() req: any,
     @Body() createPersonalEventDto: CreatePersonalEventDto,

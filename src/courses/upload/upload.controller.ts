@@ -11,6 +11,7 @@ import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { UploadService } from './upload.service';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { AuditAction } from '../../common/decorators/audit-action.decorator';
 
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -32,6 +33,7 @@ export class UploadController {
     },
   })
   @UseInterceptors(FileInterceptor('file'))
+  @AuditAction('UPLOAD_COURSES', 'course')
   async importCoursesExcel(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException({
@@ -59,6 +61,7 @@ export class UploadController {
     },
   })
   @UseInterceptors(FileInterceptor('file'))
+  @AuditAction('UPLOAD_CLASSES', 'class')
   async importClassesExcel(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException({

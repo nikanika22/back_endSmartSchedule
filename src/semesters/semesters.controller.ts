@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { SemestersService } from './semesters.service';
 import { CreateSemesterDto } from './dto/create-semester.dto';
 import { UpdateSemesterDto } from './dto/update-semester.dto';
+import { AuditAction } from '../common/decorators/audit-action.decorator';
 
 @Controller('semesters')
 export class SemestersController {
@@ -28,6 +29,7 @@ export class SemestersController {
   }
 
   @Patch(':id/activate')
+  @AuditAction('ACTIVATE_SEMESTER', 'semester')
   activateSemester(@Param('id') id: string) {
     return this.semestersService.activateSemester(id);
   }

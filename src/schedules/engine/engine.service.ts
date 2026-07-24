@@ -1,17 +1,25 @@
 import { Injectable, BadGatewayException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { ConfigService } from '@nestjs/config';
 
 const ENGINE_URL = process.env.ENGINE_URL;
 
 @Injectable()
 export class EngineService {
-  constructor(private readonly httpService: HttpService) {}
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  private get engineUrl(): string {
+    return this.configService.getOrThrow<string>('ENGINE_URL');
+  }
 
   async detectConflicts(body: any) {
     try {
       const response = await firstValueFrom(
-        this.httpService.post(`${ENGINE_URL}/schedules/conflicts`, body),
+        this.httpService.post(`${this.engineUrl}/schedules/conflicts`, body),
       );
       return response.data;
     } catch (error: any) {
@@ -22,7 +30,7 @@ export class EngineService {
   async generateSchedules(body: any) {
     try {
       const response = await firstValueFrom(
-        this.httpService.post(`${ENGINE_URL}/schedules/generate`, body),
+        this.httpService.post(`${this.engineUrl}/schedules/generate`, body),
       );
       return response.data;
     } catch (error: any) {

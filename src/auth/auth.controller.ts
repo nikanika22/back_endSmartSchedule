@@ -21,6 +21,7 @@ import { UpdateStudentDto } from '../students/dto/update-student.dto';
 import { ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { LoginDTO } from './dto/login.dto';
 import { Student } from '../students/entities/student.entity';
+import { AuditAction } from '../common/decorators/audit-action.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -32,6 +33,7 @@ export class AuthController {
 
   @Post('register')
   @UsePipes(new ValidationPipe({ whitelist: true }))
+  @AuditAction('REGISTER')
   register(@Body() userData: CreateStudentDto) {
     return this.studentsService.createUser(userData);
   }
@@ -40,6 +42,7 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiBody({ type: LoginDTO })
+  @AuditAction('LOGIN')
   login(@Request() req: any) {
     return this.authService.login(req.user);
   }
@@ -48,6 +51,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Post('logout')
   @HttpCode(HttpStatus.OK)
+  @AuditAction('LOGOUT')
   async logout(@Request() req: any) {
     const { jti, student_id } = req.user;
 
