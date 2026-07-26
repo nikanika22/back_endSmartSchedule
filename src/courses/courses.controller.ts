@@ -15,9 +15,12 @@ import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { RoleGuard } from '../guards/roles.guard';
+import { UserRole } from '../students/entities/student.entity';
+import { Roles } from '../decorators/roles.decorator';
 
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RoleGuard)
 @Controller('courses')
 export class CoursesController {
     constructor(
@@ -25,6 +28,7 @@ export class CoursesController {
         private readonly classesService: ClassesService,
     ) {}
 
+    @Roles(UserRole.ADMIN)
     @Post()
     create(@Body() createCourseDto: CreateCourseDto) {
         return this.coursesService.create(createCourseDto);
@@ -36,6 +40,7 @@ export class CoursesController {
     }
 
     // Phải đặt TRƯỚC @Get(':id') để tránh route conflict
+    @Roles(UserRole.ADMIN)
     @Get('quantity')
     getCourseQuantity() {
         return this.coursesService.getCourseQuantity();
@@ -51,6 +56,7 @@ export class CoursesController {
         return this.classesService.findByCourse(id);
     }
 
+    @Roles(UserRole.ADMIN)
     @Patch(':id')
     update(
         @Param('id') id: string,
@@ -59,6 +65,7 @@ export class CoursesController {
         return this.coursesService.update(id, updateCourseDto);
     }
 
+    @Roles(UserRole.ADMIN)
     @Delete(':id')
     remove(@Param('id') id: string) {
         return this.coursesService.remove(id);

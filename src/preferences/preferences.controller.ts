@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { PreferencesService } from './preferences.service';
 import { UpdatePreferenceDto } from './dto/update-preference.dto';
 import { AvoidDaysDto } from './dto/avoid-days.dto';
+import { AuditAction } from '../common/decorators/audit-action.decorator';
 
 @ApiTags('Preferences')
 @ApiBearerAuth()
@@ -33,6 +34,7 @@ export class PreferencesController {
   @ApiBody({ type: UpdatePreferenceDto })
   @ApiResponse({ status: 201, description: 'Lưu sở thích thành công' })
   @ApiResponse({ status: 400, description: 'Dữ liệu đầu vào không hợp lệ' })
+  @AuditAction('SAVE_PREFERENCES', 'preference')
   async setPreferredSlot(
     @Request() req: any,
     @Body() updatePreferenceDto: UpdatePreferenceDto,
@@ -50,6 +52,7 @@ export class PreferencesController {
   @ApiBody({ type: AvoidDaysDto })
   @ApiResponse({ status: 201, description: 'Thêm ngày tránh thành công' })
   @ApiResponse({ status: 400, description: 'Dữ liệu đầu vào không hợp lệ' })
+  @AuditAction('SAVE_AVOID_DAYS', 'preference')
   async addAvoidDays(
     @Request() req: any,
     @Body() avoidDaysDto: AvoidDaysDto,

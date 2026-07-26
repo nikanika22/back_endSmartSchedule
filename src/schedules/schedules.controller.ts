@@ -3,6 +3,7 @@ import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { SchedulesService } from './schedules.service';
 import { SaveScheduleDto } from './dto/save-schedule.dto';
+import { AuditAction } from '../common/decorators/audit-action.decorator';
 
 @ApiTags('Schedules')
 @ApiBearerAuth()
@@ -12,6 +13,7 @@ export class SchedulesController {
   constructor(private readonly schedulesService: SchedulesService) {}
 
   @Post('generate')
+  @AuditAction('GENERATE_SCHEDULE', 'schedule')
   generate(
     @Request() req: any) {
     return this.schedulesService.generateSchedule(req.user.student_id);
@@ -24,6 +26,7 @@ export class SchedulesController {
   }
 
   @Post('save') 
+  @AuditAction('CONFIRM_SCHEDULE', 'schedule')
   saveSchedule(
     @Request() req: any,
     @Body() dto: SaveScheduleDto) {

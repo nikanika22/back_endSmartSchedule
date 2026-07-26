@@ -3,6 +3,7 @@ import { EnrollmentsService } from './enrollments.service';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { AuditAction } from '../common/decorators/audit-action.decorator';
 
 @ApiTags('Enrollments')
 @ApiBearerAuth()
@@ -12,6 +13,7 @@ export class EnrollmentsController {
   constructor(private readonly enrollmentsService: EnrollmentsService) {}
 
   @Post()
+  @AuditAction('CREATE_ENROLLMENT', 'enrollment')
   async create(
     @Request() req: any,
     @Body() createEnrollmentDto: CreateEnrollmentDto,
@@ -41,6 +43,7 @@ export class EnrollmentsController {
 
   // DELETE /enrollments/my → Xóa toàn bộ enrollment của student trong học kỳ active
   @Delete('my')
+  @AuditAction('DELETE_ALL_ENROLLMENTS', 'enrollment')
   async deleteMyEnrollments(@Request() req: any) {
     const student_id = req.user.student_id;
     await this.enrollmentsService.deleteMyEnrollments(student_id);

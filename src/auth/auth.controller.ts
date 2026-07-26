@@ -20,7 +20,11 @@ import { CreateStudentDto } from '../students/dto/create-student.dto';
 import { UpdateStudentDto } from '../students/dto/update-student.dto';
 import { ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { LoginDTO } from './dto/login.dto';
-import { Student } from '../students/entities/student.entity';
+import { AuditAction } from '../common/decorators/audit-action.decorator';
+import { Student, UserRole } from '../students/entities/student.entity';
+
+import { Roles } from 'src/decorators/roles.decorator';
+
 
 @Controller('auth')
 export class AuthController {
@@ -29,25 +33,28 @@ export class AuthController {
     private readonly studentsService: StudentsService,
     private readonly jwtService: JwtService,
   ) {}
-
+  @UseGuards(LocalAuthGuard)
   @Post('register')
   @UsePipes(new ValidationPipe({ whitelist: true }))
+  @AuditAction('REGISTER')
   register(@Body() userData: CreateStudentDto) {
     return this.studentsService.createUser(userData);
   }
-
   @UseGuards(LocalAuthGuard)
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiBody({ type: LoginDTO })
+  @AuditAction('LOGIN')
   login(@Request() req: any) {
     return this.authService.login(req.user);
   }
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
+  @Roles(UserRole.ADMIN,UserRole.STUDENT)
   @Post('logout')
   @HttpCode(HttpStatus.OK)
+  @AuditAction('LOGOUT')
   async logout(@Request() req: any) {
     const { jti, student_id } = req.user;
 
