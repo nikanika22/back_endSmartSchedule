@@ -151,7 +151,7 @@ export class UploadService {
     }
 
     async importClassesFromExcel(fileBuffer: Buffer) {
-        const worksheet = await this.getWorksheetFromBuffer(fileBuffer, 'Sheet2', 1);
+        const worksheet = await this.getWorksheetFromBuffer(fileBuffer, 'Sheet1', 1);
 
         const classes: ClassEntity[] = [];
         const errors: string[] = [];
