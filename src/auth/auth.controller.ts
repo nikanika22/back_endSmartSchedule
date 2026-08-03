@@ -33,10 +33,10 @@ export class AuthController {
     private readonly studentsService: StudentsService,
     private readonly jwtService: JwtService,
   ) {}
-  @UseGuards(LocalAuthGuard)
+  // @UseGuards(LocalAuthGuard)
   @Post('register')
   @UsePipes(new ValidationPipe({ whitelist: true }))
-  @AuditAction('REGISTER')
+  // @AuditAction('REGISTER')
   register(@Body() userData: CreateStudentDto) {
     return this.studentsService.createUser(userData);
   }
