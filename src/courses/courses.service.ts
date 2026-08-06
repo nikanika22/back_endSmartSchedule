@@ -17,6 +17,18 @@ export class CoursesService {
         private readonly courseRepository: Repository<Course>,
     ) {}
 
+    private validateDateRange(startDate: Date | string, endDate: Date | string): void {
+        if (new Date(endDate) < new Date(startDate)) {
+            throw new BadRequestException({
+                success: false,
+                error: {
+                    code: 'COURSE_DATE_RANGE_INVALID',
+                    message: 'Ngày kết thúc môn học không được nhỏ hơn ngày bắt đầu.',
+                },
+            });
+        }
+    }
+
     async create(createCourseDto: CreateCourseDto): Promise<Course> {
         const existing = await this.courseRepository.findOne({
             where: { course_id: createCourseDto.course_id },
@@ -32,6 +44,7 @@ export class CoursesService {
             });
         }
 
+        this.validateDateRange(createCourseDto.start_date, createCourseDto.end_date);
         const course = this.courseRepository.create(createCourseDto);
         return await this.courseRepository.save(course);
     }
@@ -66,6 +79,10 @@ export class CoursesService {
         updateCourseDto: UpdateCourseDto,
     ): Promise<Course> {
         const course = await this.findOne(id);
+        this.validateDateRange(
+            updateCourseDto.start_date ?? course.start_date,
+            updateCourseDto.end_date ?? course.end_date,
+        );
         Object.assign(course, updateCourseDto);
         return await this.courseRepository.save(course);
     }

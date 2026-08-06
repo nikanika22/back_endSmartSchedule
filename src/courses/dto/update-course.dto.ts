@@ -1,5 +1,6 @@
 import {
     IsInt,
+    IsDateString,
     IsNotEmpty,
     IsOptional,
     IsString,
@@ -23,4 +24,12 @@ export class UpdateCourseDto {
     @IsString()
     @MaxLength(100)
     department?: string;
+
+    @IsOptional()
+    @IsDateString()
+    start_date?: string;
+
+    @IsOptional()
+    @IsDateString()
+    end_date?: string;
 }

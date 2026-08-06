@@ -49,11 +49,32 @@ export class UploadService {
         return worksheet;
     }
 
-    private async getExistingCoursesIds(courseIds: string[]) {
+    private async getExistingCourseIds(courseIds: string[]) {
         const existingCourses = await this.courseRepository.find({
             where: { course_id: In(courseIds) }
         });
-        return new Set(existingCourses.map(c => c.course_id));
+        return new Set(existingCourses.map(course => course.course_id));
+    }
+
+    private toIsoDate(value: Exceljs.CellValue | undefined): string | null {
+        const formatDate = (date: Date): string | null =>
+            Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
+
+        if (value instanceof Date) return formatDate(value);
+        if (typeof value === 'number') {
+            return formatDate(new Date(Date.UTC(1899, 11, 30) + value * 86_400_000));
+        }
+        if (typeof value !== 'string') return null;
+
+        const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+        if (!match) return null;
+
+        const [year, month, day] = match.slice(1).map(Number);
+        const date = new Date(Date.UTC(year, month - 1, day));
+        if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
+            return null;
+        }
+        return formatDate(date);
     }
 
     async importCoursesFromExcel(fileBuffer: Buffer) {
@@ -71,8 +92,10 @@ export class UploadService {
             const course_name = row.getCell(2).value?.toString().trim();
             const credit_number = row.getCell(3).value;
             const department = row.getCell(4).value?.toString().trim();
+            const start_date = this.toIsoDate(row.getCell(5).value);
+            const end_date = this.toIsoDate(row.getCell(6).value);
 
-            rowsData.push({ course_id, course_name, credit_number, department, rowNumber });
+            rowsData.push({ course_id, course_name, credit_number, department, start_date, end_date, rowNumber });
         });
 
         if (rowsData.length === 0) {
@@ -86,17 +109,17 @@ export class UploadService {
         }
 
         // lấy danh sách môn học đã tồn tại
-        const existingCourseIds = await this.getExistingCoursesIds(rowsData.map(r => r.course_id));
+        const existingCourseIds = await this.getExistingCourseIds(rowsData.map(r => r.course_id));
 
         // khởi tạo danh sách course_id đã duyệt
         const seenCourseIds = new Set<string>();
 
         // Dùng vòng lặp for...of để duyệt mảng tạm
         for (const data of rowsData) {
-            const { course_id, course_name, credit_number, department, rowNumber } = data;
+            const { course_id, course_name, credit_number, department, start_date, end_date, rowNumber } = data;
             const credits = Number(credit_number);
 
-            if (!course_id || !course_name || !credit_number || !department){
+            if (!course_id || !course_name || !credit_number || !department || !start_date || !end_date){
                 errors.push(`Hàng ${rowNumber} thiếu thông tin bắt buộc`)
                 continue; 
             }
@@ -106,14 +129,19 @@ export class UploadService {
                 continue;
             }
 
+            if (end_date < start_date) {
+                errors.push(`Hàng ${rowNumber} ngày kết thúc không được nhỏ hơn ngày bắt đầu`);
+                continue;
+            }
+
             if (seenCourseIds.has(course_id)) {
                 errors.push(`Hàng ${rowNumber} bị trùng lặp khóa học (Mã: ${course_id}) trong chính file Excel`)
                 continue;
             }
             seenCourseIds.add(course_id);
 
-            if (existingCourseIds.has(course_id)){
-                errors.push(`Hàng ${rowNumber} đã tồn tại khóa học (Mã: ${course_id})`)
+            if (existingCourseIds.has(course_id)) {
+                errors.push(`Hàng ${rowNumber} đã tồn tại khóa học (Mã: ${course_id})`);
                 continue;
             }
 
@@ -121,7 +149,9 @@ export class UploadService {
                 course_id,
                 course_name,
                 credits,
-                department
+                department,
+                start_date: new Date(start_date),
+                end_date: new Date(end_date),
             });
             courses.push(course);
         }
@@ -145,7 +175,7 @@ export class UploadService {
             success: true,
             data: {
                 message: 'Import khóa học thành công',
-                count: courses.length
+                count: courses.length,
             }
         };
     }
@@ -191,7 +221,7 @@ export class UploadService {
         const existingClassIdsSet = new Set(existingClasses.map(c => c.class_id));
 
         // lấy danh sách môn học đã tồn tại
-        const existingCourseIds = await this.getExistingCoursesIds(rowsData.map(r => r.course_id));
+        const existingCourseIds = await this.getExistingCourseIds(rowsData.map(r => r.course_id));
 
         // lấy danh sách học kỳ đã tồn tại
         const existingSemesters = await this.semesterRepository.find({

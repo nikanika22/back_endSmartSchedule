@@ -1,8 +1,10 @@
 import {
     IsInt,
+    IsDateString,
     IsNotEmpty,
     IsOptional,
     IsString,
+    Matches,
     Max,
     MaxLength,
     Min,
@@ -11,7 +13,7 @@ import {
 export class CreateCourseDto {
     @IsString()
     @IsNotEmpty()
-    @MaxLength(20)
+    @Matches(/^CS\d{5}$/, { message: 'Mã môn học không hợp lệ. Định dạng: CS03007' })
     course_id!: string;
 
     @IsString()
@@ -28,4 +30,10 @@ export class CreateCourseDto {
     @IsString()
     @MaxLength(100)
     department?: string;
+
+    @IsDateString()
+    start_date!: string;
+
+    @IsDateString()
+    end_date!: string;
 }

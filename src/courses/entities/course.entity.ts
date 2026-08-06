@@ -3,6 +3,9 @@ import { Check, Column, Entity, OneToMany, PrimaryColumn } from 'typeorm';
 
 @Entity('courses')
 @Check('"credits" > 0')
+@Check(
+  '"end_date" >= "start_date"',
+)
 export class Course {
   @PrimaryColumn({ name: 'course_id', type: 'varchar', length: 20 })
   course_id!: string;
@@ -15,6 +18,13 @@ export class Course {
 
   @Column({ type: 'varchar', length: 100, nullable: true })
   department!: string;
+
+  @Column({ name: 'start_date', type: 'date' })
+  start_date!: Date;
+
+  @Column({ name: 'end_date', type: 'date' })
+  end_date!: Date;
+
   @OneToMany(()=>ClassEntity,(classEntity)=>classEntity.course)
   classes!:ClassEntity[];
 }

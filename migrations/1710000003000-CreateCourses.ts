@@ -30,12 +30,27 @@ export class CreateCourses1710000003000 implements MigrationInterface {
             isNullable: true,
             comment: 'NULL = không bắt buộc',
           },
+          {
+            name: 'start_date',
+            type: 'date',
+            isNullable: false,
+          },
+          {
+            name: 'end_date',
+            type: 'date',
+            isNullable: false,
+          },
         ],
         checks: [
           new TableCheck({
             name: 'chk_credits',
             columnNames: ['credits'],
             expression: '"credits" > 0',
+          }),
+          new TableCheck({
+            name: 'chk_courses_date_range',
+            columnNames: ['start_date', 'end_date'],
+            expression: '"end_date" >= "start_date"',
           }),
         ],
       }),

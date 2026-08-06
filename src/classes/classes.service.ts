@@ -1,8 +1,8 @@
 import {
+    BadRequestException,
     ConflictException,
     Injectable,
     NotFoundException,
-    BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -10,6 +10,7 @@ import { Course } from '../courses/entities/course.entity';
 import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
 import { ClassEntity } from './entities/class.entity';
+import { Semester } from '../semesters/entities/semester.entity';
 
 @Injectable()
 export class ClassesService {
@@ -18,6 +19,8 @@ export class ClassesService {
         private readonly classRepository: Repository<ClassEntity>,
         @InjectRepository(Course)
         private readonly courseRepository: Repository<Course>,
+        @InjectRepository(Semester)
+        private readonly semesterRepository: Repository<Semester>,
     ) {}
 
     async create(createClassDto: CreateClassDto): Promise<ClassEntity> {
@@ -31,6 +34,42 @@ export class ClassesService {
                 error: {
                     code: 'CLASS_ID_ALREADY_EXISTS',
                     message: `Mã nhóm lớp '${createClassDto.class_id}' đã tồn tại.`,
+                },
+            });
+        }
+
+        const semester = await this.semesterRepository.findOne({
+            where: { semester_id: createClassDto.semester_id },
+        });
+        if (!semester) {
+            throw new NotFoundException({
+                success: false,
+                error: {
+                    code: 'SEMESTER_NOT_FOUND',
+                    message: `Học kỳ '${createClassDto.semester_id}' không tồn tại.`,
+                },
+            });
+        }
+
+        const course = await this.courseRepository.findOne({
+            where: { course_id: createClassDto.course_id },
+        });
+        if (!course) {
+            throw new NotFoundException({
+                success: false,
+                error: {
+                    code: 'COURSE_NOT_FOUND',
+                    message: `Môn học '${createClassDto.course_id}' không tồn tại.`,
+                },
+            });
+        }
+
+        if (createClassDto.end_time <= createClassDto.start_time) {
+            throw new BadRequestException({
+                success: false,
+                error: {
+                    code: 'INVALID_TIME_RANGE',
+                    message: 'Giờ kết thúc phải sau giờ bắt đầu.',
                 },
             });
         }
@@ -92,7 +131,7 @@ export class ClassesService {
         updateClassDto: UpdateClassDto,
     ): Promise<ClassEntity> {
         await this.findOne(id);
-        
+
         if (updateClassDto.course_id) {
             const course = await this.courseRepository.findOne({ where: { course_id: updateClassDto.course_id } });
             if (!course) {
@@ -105,7 +144,7 @@ export class ClassesService {
                 });
             }
         }
-        
+
         if (Object.keys(updateClassDto).length > 0) {
             await this.classRepository.update(id, updateClassDto);
         }
