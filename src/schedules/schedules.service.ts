@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, DataSource } from 'typeorm';
@@ -24,6 +25,9 @@ export class SchedulesService {
     private readonly engineService: EngineService,
     @InjectRepository(Schedule)
     private readonly ScheduleRepository: Repository<Schedule>,
+
+    @InjectRepository(ScheduleClass)
+    private readonly ScheduleClassRepository: Repository<ScheduleClass>,
 
     @InjectRepository(Preference)
     private readonly PreferenceRepository: Repository<Preference>,
@@ -64,42 +68,100 @@ export class SchedulesService {
     const activeSemester = await this.getSemeter();
     const semester_id = activeSemester.semester_id;
 
-    const schedule = await this.ScheduleRepository.findOne({
-      where: {
-        schedule_id: dto.schedule_id,
-        student_id: student_id,
-        semester_id: semester_id,
-        is_draft: true,
-      },
-    });
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    if (!schedule) {
-      throw new NotFoundException({
-        success: false,
-        error: {
-          code: 'SCHEDULE_NOT_FOUND',
-          message: 'Không tìm thấy thời khóa biểu',
+    try {
+      const scheduleRepository = queryRunner.manager.getRepository(Schedule);
+      const scheduleClassRepository =
+        queryRunner.manager.getRepository(ScheduleClass);
+
+      const schedule = await scheduleRepository.findOne({
+        where: {
+          schedule_id: dto.schedule_id,
+          student_id: student_id,
+          semester_id: semester_id,
+          is_draft: true,
         },
+        relations: ['scheduleClasses'],
       });
+
+      if (!schedule) {
+        throw new NotFoundException({
+          success: false,
+          error: {
+            code: 'SCHEDULE_NOT_FOUND',
+            message: 'Không tìm thấy thời khóa biểu',
+          },
+        });
+      }
+
+      const classIds = schedule.scheduleClasses.map(
+        (scheduleClass) => scheduleClass.class_id,
+      );
+
+      if (classIds.length === 0) {
+        throw new BadRequestException({
+          success: false,
+          error: {
+            code: 'SCHEDULE_HAS_NO_CLASSES',
+            message: 'Thời khóa biểu không có lớp để xác nhận.',
+          },
+        });
+      }
+
+      const classes = await queryRunner.manager
+        .getRepository(ClassEntity)
+        .createQueryBuilder('class')
+        .setLock('pessimistic_write')
+        .where('class.class_id IN (:...classIds)', { classIds })
+        .orderBy('class.class_id', 'ASC')
+        .getMany();
+
+      await scheduleRepository.update(
+        {
+          student_id: student_id,
+          semester_id: semester_id,
+          is_selected: true,
+          is_active: true,
+        },
+        { is_selected: false, is_draft: true, is_active: false },
+      );
+
+      const enrolledByClass = await this.getEnrolledByClass(
+        classIds,
+        semester_id,
+        scheduleClassRepository,
+      );
+
+      for (const classEntity of classes) {
+        const currentEnrolled = enrolledByClass.get(classEntity.class_id) ?? 0;
+
+        if (currentEnrolled >= classEntity.max_students) {
+          throw new ConflictException({
+            success: false,
+            error: {
+              code: 'CLASS_IS_FULL',
+              message: `Lớp ${classEntity.class_id} đã đủ sĩ số. Vui lòng chọn phương án khác.`,
+            },
+          });
+        }
+      }
+
+      schedule.is_selected = true;
+      schedule.is_draft = false;
+      schedule.is_active = true;
+      await scheduleRepository.save(schedule);
+
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
 
-    await this.ScheduleRepository.update(
-      {
-        student_id: student_id,
-        semester_id: semester_id,
-        is_selected: true,
-        is_active: true,
-      },
-      { is_selected: false, is_draft: true, is_active: false },
-    );
-
-    schedule.is_selected = true;
-    schedule.is_draft = false;
-    schedule.is_active = true;
-
-    await this.ScheduleRepository.save(schedule);
-
-    // Trả về kèm relations để FE hiển thị được lịch
     return await this.findSelectedBySemester(student_id);
   }
 
@@ -216,11 +278,17 @@ export class SchedulesService {
             class_id: cls.class_id,
             course_id: cls.course_id,
             course_name: matchedCourse ? matchedCourse.course_name : null,
+            start_date: matchedCourse?.start_date,
+            end_date: matchedCourse?.end_date,
             day_of_week: cls.day_of_week,
             start_time: cls.start_time,
             end_time: cls.end_time,
             room: cls.room,
             instructor: cls.instructor,
+            remaining_students: Math.max(
+              cls.max_students - cls.current_enrolled,
+              0,
+            ),
           };
         }),
       };
@@ -240,7 +308,7 @@ export class SchedulesService {
         is_selected: true,
         is_active: true,
       },
-      relations: ['scheduleClasses', 'scheduleClasses.class'],
+      relations: ['scheduleClasses', 'scheduleClasses.class', 'scheduleClasses.class.course'],
     });
 
     if (!schedule) {
@@ -252,6 +320,17 @@ export class SchedulesService {
         },
       });
     }
+
+    for (const scheduleClass of schedule.scheduleClasses) {
+      const course = scheduleClass.class.course;
+
+      Object.assign(scheduleClass.class, {
+        course_name: course.course_name,
+        start_date: course.start_date,
+        end_date: course.end_date,
+      });
+    }
+
     return schedule;
   }
 
@@ -391,6 +470,18 @@ export class SchedulesService {
       },
     });
 
+    const classIds = classes.map((classEntity) => classEntity.class_id);
+    const enrolledByClass = await this.getEnrolledByClass(
+      classIds,
+      semester_id,
+    );
+
+    for (const classEntity of classes) {
+      const currentEnrolled = enrolledByClass.get(classEntity.class_id) ?? 0;
+
+      Object.assign(classEntity, { current_enrolled: currentEnrolled });
+    }
+
     const missingCourse = courses.find(
       (c) => !classes.some((cls) => cls.course_id === c.course_id),
     );
@@ -420,5 +511,34 @@ export class SchedulesService {
       classes,
       semester_id,
     };
+  }
+
+  private async getEnrolledByClass(
+    classIds: string[],
+    semester_id: string,
+    scheduleClassRepository = this.ScheduleClassRepository,
+  ): Promise<Map<string, number>> {
+    const enrolledByClass = new Map<string, number>();
+
+    if (classIds.length === 0) {
+      return enrolledByClass;
+    }
+
+    const rows = await scheduleClassRepository
+      .createQueryBuilder('scheduleClass')
+      .innerJoin('scheduleClass.schedule', 'schedule')
+      .select('scheduleClass.class_id', 'class_id')
+      .addSelect('COUNT(scheduleClass.class_id)', 'current_enrolled')
+      .where('scheduleClass.class_id IN (:...classIds)', { classIds })
+      .andWhere('schedule.semester_id = :semester_id', { semester_id })
+      .andWhere('schedule.is_selected = :is_selected', { is_selected: true })
+      .groupBy('scheduleClass.class_id')
+      .getRawMany<{ class_id: string; current_enrolled: string }>();
+
+    for (const row of rows) {
+      enrolledByClass.set(row.class_id, Number(row.current_enrolled));
+    }
+
+    return enrolledByClass;
   }
 }

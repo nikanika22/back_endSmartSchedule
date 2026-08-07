@@ -4,6 +4,7 @@ import { Check, Column, Entity, JoinColumn, ManyToOne, PrimaryColumn, PrimaryGen
 @Entity('personal_events')
 @Check('"day_of_week" IS NULL OR "day_of_week" BETWEEN 2 AND 8')
 @Check('"end_time" > "start_time"')
+@Check('"end_date" >= "start_date"')
 export class PersonalEvent {
     @PrimaryGeneratedColumn('increment')
     event_id!: number;
@@ -29,6 +30,12 @@ export class PersonalEvent {
 
     @Column({ name: 'end_time', type: 'time' })
     end_time!: string;
+
+    @Column({ name: 'start_date', type: 'date' })
+    start_date!: Date;
+
+    @Column({ name: 'end_date', type: 'date' })
+    end_date!: Date;
 
     @Column({ name: 'is_recurring', type: 'boolean', default: false })
     is_recurring!: boolean;

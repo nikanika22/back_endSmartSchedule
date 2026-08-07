@@ -46,6 +46,16 @@ export class CreatePersonalEvents1710000007000 implements MigrationInterface {
             isNullable: false,
           },
           {
+            name: 'start_date',
+            type: 'date',
+            isNullable: false,
+          },
+          {
+            name: 'end_date',
+            type: 'date',
+            isNullable: false,
+          },
+          {
             name: 'is_recurring',
             type: 'boolean',
             isNullable: false,
@@ -68,6 +78,11 @@ export class CreatePersonalEvents1710000007000 implements MigrationInterface {
             name: 'chk_event_time',
             columnNames: ['start_time', 'end_time'],
             expression: '"end_time" > "start_time"',
+          }),
+          new TableCheck({
+            name: 'chk_personal_events_date_range',
+            columnNames: ['start_date', 'end_date'],
+            expression: '"end_date" >= "start_date"',
           }),
         ],
       }),

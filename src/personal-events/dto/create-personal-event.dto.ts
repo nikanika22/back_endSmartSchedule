@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
     IsBoolean,
+    IsDateString,
     IsInt,
     IsNotEmpty,
     IsOptional,
@@ -45,6 +46,18 @@ export class CreatePersonalEventDto {
     @IsNotEmpty()
     @Matches(/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/)
     end_time!: string;
+
+    @ApiProperty({
+        example: '2026-09-01',
+    })
+    @IsDateString()
+    start_date!: string;
+
+    @ApiProperty({
+        example: '2026-12-31',
+    })
+    @IsDateString()
+    end_date!: string;
 
     @ApiProperty({
         example: true,

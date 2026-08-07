@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -44,6 +45,10 @@ export class PersonalEventsService {
       });
     }
 
+    this.validateDateRange(
+      createPersonalEventDto.start_date,
+      createPersonalEventDto.end_date,
+    );
     await this.checkOverlap(student_id, createPersonalEventDto);
 
     const personalEvent = this.personalEventRepository.create({
@@ -52,6 +57,8 @@ export class PersonalEventsService {
       day_of_week: createPersonalEventDto.day_of_week,
       start_time: createPersonalEventDto.start_time,
       end_time: createPersonalEventDto.end_time,
+      start_date: new Date(createPersonalEventDto.start_date),
+      end_date: new Date(createPersonalEventDto.end_date),
       is_recurring: createPersonalEventDto.is_recurring,
       note: createPersonalEventDto.note,
     });
@@ -92,6 +99,7 @@ export class PersonalEventsService {
     const event = await this.findOne(student_id, id);
     const nextEvent = { ...event, ...updatePersonalEventDto };
 
+    this.validateDateRange(nextEvent.start_date, nextEvent.end_date);
     await this.checkOverlap(student_id, nextEvent, id);
 
     Object.assign(event, updatePersonalEventDto);
@@ -101,6 +109,18 @@ export class PersonalEventsService {
   async remove(student_id: string, id: number): Promise<void> {
     const event = await this.findOne(student_id, id);
     await this.personalEventRepository.remove(event);
+  }
+
+  private validateDateRange(startDate: Date | string, endDate: Date | string): void {
+    if (new Date(endDate) < new Date(startDate)) {
+      throw new BadRequestException({
+        success: false,
+        error: {
+          code: 'PERSONAL_EVENT_DATE_RANGE_INVALID',
+          message: 'Ngày kết thúc lịch bận không được nhỏ hơn ngày bắt đầu.',
+        },
+      });
+    }
   }
 
   private async checkOverlap(
