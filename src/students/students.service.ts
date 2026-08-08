@@ -66,7 +66,10 @@ export class StudentsService {
   }
 
   findAll() {
-    return `This action returns all students`;
+    return this.studentRepository.find({
+      select: ['student_id', 'name', 'email', 'role'],
+      order: { student_id: 'ASC' },
+    });
   }
 
   findOne(id: number) {
@@ -117,7 +120,7 @@ export class StudentsService {
     return await this.studentRepository.save(student);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} student`;
+  async remove(id: number) {
+    return this.studentRepository.delete(id);
   }
 }
