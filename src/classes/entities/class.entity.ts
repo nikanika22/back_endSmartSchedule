@@ -13,6 +13,7 @@ import {
 @Check('"day_of_week" BETWEEN 2 AND 8')
 @Check('"end_time" > "start_time"')
 @Check('"max_students" > 0')
+@Check('"enrolled_count" >= 0 AND "enrolled_count" <= "max_students"')
 export class ClassEntity {
     @PrimaryColumn({ name: 'class_id', type: 'varchar', length: 20 })
     class_id!: string;
@@ -50,4 +51,7 @@ export class ClassEntity {
 
     @Column({ name: 'max_students', type: 'smallint' })
     max_students!: number;
+
+    @Column({ name: 'enrolled_count', type: 'smallint', default: 0 })
+    enrolled_count!: number;
 }

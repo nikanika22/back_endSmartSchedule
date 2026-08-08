@@ -64,6 +64,12 @@ export class CreateClasses1710000004000 implements MigrationInterface {
             type: 'smallint',
             isNullable: false,
           },
+          {
+            name: 'enrolled_count',
+            type: 'smallint',
+            isNullable: false,
+            default: 0,
+          },
         ],
         checks: [
           new TableCheck({
@@ -80,6 +86,12 @@ export class CreateClasses1710000004000 implements MigrationInterface {
             name: 'chk_class_max_stu',
             columnNames: ['max_students'],
             expression: '"max_students" > 0',
+          }),
+          new TableCheck({
+            name: 'chk_class_enrolled_count',
+            columnNames: ['enrolled_count', 'max_students'],
+            expression:
+              '"enrolled_count" >= 0 AND "enrolled_count" <= "max_students"',
           }),
         ],
       }),

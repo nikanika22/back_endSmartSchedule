@@ -26,9 +26,6 @@ export class SchedulesService {
     @InjectRepository(Schedule)
     private readonly ScheduleRepository: Repository<Schedule>,
 
-    @InjectRepository(ScheduleClass)
-    private readonly ScheduleClassRepository: Repository<ScheduleClass>,
-
     @InjectRepository(Preference)
     private readonly PreferenceRepository: Repository<Preference>,
 
@@ -74,9 +71,6 @@ export class SchedulesService {
 
     try {
       const scheduleRepository = queryRunner.manager.getRepository(Schedule);
-      const scheduleClassRepository =
-        queryRunner.manager.getRepository(ScheduleClass);
-
       const schedule = await scheduleRepository.findOne({
         where: {
           schedule_id: dto.schedule_id,
@@ -111,13 +105,60 @@ export class SchedulesService {
         });
       }
 
-      const classes = await queryRunner.manager
-        .getRepository(ClassEntity)
+      const selectedSchedules = await scheduleRepository.find({
+        where: {
+          student_id: student_id,
+          semester_id: semester_id,
+          is_selected: true,
+          is_active: true,
+        },
+        relations: ['scheduleClasses'],
+      });
+
+      const oldClassIds = selectedSchedules.flatMap((selectedSchedule) =>
+        selectedSchedule.scheduleClasses.map(
+          (scheduleClass) => scheduleClass.class_id,
+        ),
+      );
+      const allClassIds = [...new Set([...classIds, ...oldClassIds])];
+      const classRepository = queryRunner.manager.getRepository(ClassEntity);
+
+      const classes = await classRepository
         .createQueryBuilder('class')
         .setLock('pessimistic_write')
-        .where('class.class_id IN (:...classIds)', { classIds })
+        .where('class.class_id IN (:...classIds)', { classIds: allClassIds })
         .orderBy('class.class_id', 'ASC')
         .getMany();
+
+      const oldClassIdSet = new Set(oldClassIds);
+      const newClassIdSet = new Set(classIds);
+
+      for (const classEntity of classes) {
+        const wasSelected = oldClassIdSet.has(classEntity.class_id);
+        const willBeSelected = newClassIdSet.has(classEntity.class_id);
+
+        if (
+          !wasSelected &&
+          willBeSelected &&
+          classEntity.enrolled_count >= classEntity.max_students
+        ) {
+          throw new ConflictException({
+            success: false,
+            error: {
+              code: 'CLASS_IS_FULL',
+              message: `Lớp ${classEntity.class_id} đã đủ sĩ số. Vui lòng chọn phương án khác.`,
+            },
+          });
+        }
+
+        if (wasSelected && !willBeSelected) {
+          classEntity.enrolled_count -= 1;
+        }
+
+        if (!wasSelected && willBeSelected) {
+          classEntity.enrolled_count += 1;
+        }
+      }
 
       await scheduleRepository.update(
         {
@@ -129,30 +170,11 @@ export class SchedulesService {
         { is_selected: false, is_draft: true, is_active: false },
       );
 
-      const enrolledByClass = await this.getEnrolledByClass(
-        classIds,
-        semester_id,
-        scheduleClassRepository,
-      );
-
-      for (const classEntity of classes) {
-        const currentEnrolled = enrolledByClass.get(classEntity.class_id) ?? 0;
-
-        if (currentEnrolled >= classEntity.max_students) {
-          throw new ConflictException({
-            success: false,
-            error: {
-              code: 'CLASS_IS_FULL',
-              message: `Lớp ${classEntity.class_id} đã đủ sĩ số. Vui lòng chọn phương án khác.`,
-            },
-          });
-        }
-      }
-
       schedule.is_selected = true;
       schedule.is_draft = false;
       schedule.is_active = true;
       await scheduleRepository.save(schedule);
+      await classRepository.save(classes);
 
       await queryRunner.commitTransaction();
     } catch (error) {
@@ -285,10 +307,6 @@ export class SchedulesService {
             end_time: cls.end_time,
             room: cls.room,
             instructor: cls.instructor,
-            remaining_students: Math.max(
-              cls.max_students - cls.current_enrolled,
-              0,
-            ),
           };
         }),
       };
@@ -470,18 +488,6 @@ export class SchedulesService {
       },
     });
 
-    const classIds = classes.map((classEntity) => classEntity.class_id);
-    const enrolledByClass = await this.getEnrolledByClass(
-      classIds,
-      semester_id,
-    );
-
-    for (const classEntity of classes) {
-      const currentEnrolled = enrolledByClass.get(classEntity.class_id) ?? 0;
-
-      Object.assign(classEntity, { current_enrolled: currentEnrolled });
-    }
-
     const missingCourse = courses.find(
       (c) => !classes.some((cls) => cls.course_id === c.course_id),
     );
@@ -511,34 +517,5 @@ export class SchedulesService {
       classes,
       semester_id,
     };
-  }
-
-  private async getEnrolledByClass(
-    classIds: string[],
-    semester_id: string,
-    scheduleClassRepository = this.ScheduleClassRepository,
-  ): Promise<Map<string, number>> {
-    const enrolledByClass = new Map<string, number>();
-
-    if (classIds.length === 0) {
-      return enrolledByClass;
-    }
-
-    const rows = await scheduleClassRepository
-      .createQueryBuilder('scheduleClass')
-      .innerJoin('scheduleClass.schedule', 'schedule')
-      .select('scheduleClass.class_id', 'class_id')
-      .addSelect('COUNT(scheduleClass.class_id)', 'current_enrolled')
-      .where('scheduleClass.class_id IN (:...classIds)', { classIds })
-      .andWhere('schedule.semester_id = :semester_id', { semester_id })
-      .andWhere('schedule.is_selected = :is_selected', { is_selected: true })
-      .groupBy('scheduleClass.class_id')
-      .getRawMany<{ class_id: string; current_enrolled: string }>();
-
-    for (const row of rows) {
-      enrolledByClass.set(row.class_id, Number(row.current_enrolled));
-    }
-
-    return enrolledByClass;
   }
 }
