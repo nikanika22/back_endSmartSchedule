@@ -1,4 +1,9 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
@@ -11,7 +16,7 @@ export class StudentsService {
   constructor(
     @InjectRepository(Student)
     private readonly studentRepository: Repository<Student>,
-  ) {}
+  ) { }
 
   async createUser(userData: CreateStudentDto) {
     //Kiểm tra MSSV đã tồn tại chưa
@@ -56,13 +61,57 @@ export class StudentsService {
   }
   async validate(email: string, password: string) {
     const student = await this.findByEmail(email);
-    if (student && (await bcrypt.compare(password, student.password_hash)))
-      return student;
-    else return null;
+
+    if (!student) {
+      return null;
+    }
+
+    const passwordValid = await bcrypt.compare(password, student.password_hash);
+
+    if (!passwordValid) {
+      return null;
+    }
+
+    if (!student.email_verified) {
+      throw new ForbiddenException({
+        success: false,
+        error: {
+          code: 'AUTH_EMAIL_NOT_VERIFIED',
+          message: 'Vui lòng xác minh email trước khi đăng nhập.',
+        },
+      });
+    }
+
+    return student;
   }
+
   async findByEmail(email: string) {
     const student = await this.studentRepository.findOneBy({ email });
     return student;
+  }
+
+  async markEmailAsVerified(email: string): Promise<Student> {
+    const student = await this.findByEmail(email);
+
+    if (!student) {
+      throw new NotFoundException({
+        success: false,
+        error: {
+          code: 'AUTH_STUDENT_NOT_FOUND',
+          message: 'Không tìm thấy tài khoản đăng ký.',
+        },
+      });
+    }
+
+    student.email_verified = true;
+    return this.studentRepository.save(student);
+  }
+
+  async removeUnverifiedByEmail(email: string): Promise<void> {
+    await this.studentRepository.delete({
+      email: email.trim().toLowerCase(),
+      email_verified: false,
+    });
   }
 
   findAll() {

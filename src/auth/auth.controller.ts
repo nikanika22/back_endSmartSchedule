@@ -20,6 +20,7 @@ import { CreateStudentDto } from '../students/dto/create-student.dto';
 import { UpdateStudentDto } from '../students/dto/update-student.dto';
 import { ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { LoginDTO } from './dto/login.dto';
+import { ConfirmRegistrationDto } from './dto/confirm-registration.dto';
 import { AuditAction } from '../common/decorators/audit-action.decorator';
 import { Student, UserRole } from '../students/entities/student.entity';
 
@@ -35,10 +36,16 @@ export class AuthController {
   ) {}
   // @UseGuards(LocalAuthGuard)
   @Post('register')
+  @HttpCode(HttpStatus.ACCEPTED)
   @UsePipes(new ValidationPipe({ whitelist: true }))
-  // @AuditAction('REGISTER')
   register(@Body() userData: CreateStudentDto) {
-    return this.studentsService.createUser(userData);
+    return this.authService.register(userData);
+  }
+
+  @Post('register/confirm')
+  @HttpCode(HttpStatus.OK)
+  confirmRegistration(@Body() dto: ConfirmRegistrationDto) {
+    return this.authService.confirmRegistration(dto);
   }
   @UseGuards(LocalAuthGuard)
   @Post('login')

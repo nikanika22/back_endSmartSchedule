@@ -21,6 +21,10 @@ export class Student {
 
   @Column({ type: 'enum', enum: UserRole, default: UserRole.STUDENT })
   role: UserRole;
+
+  @Column({ name: 'email_verified', type: 'boolean', default: false })
+  email_verified: boolean;
+
   @Column({ name: 'created_at', type: 'timestamp', default: () => 'NOW()' })
   created_at: Date;
 }
