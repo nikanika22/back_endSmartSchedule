@@ -40,6 +40,12 @@ export class CreateStudents1710000002000 implements MigrationInterface {
             default: `'student'`,
           },
           {
+            name: 'email_verified',
+            type: 'boolean',
+            isNullable: false,
+            default: false,
+          },
+          {
             name: 'created_at',
             type: 'timestamp',
             isNullable: false,
