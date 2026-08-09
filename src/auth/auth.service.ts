@@ -51,6 +51,11 @@ export class AuthService {
         to: email,
         subject: 'Mã xác minh tài khoản SmartSchedule',
         text: `Xin chào ${student.name},\n\nMã xác minh của bạn là: ${otp}\n\nMã có hiệu lực trong 5 phút.`,
+        html: `
+          <p style="font-size: 15px; color: #333;">Xin chào <b>${student.name}</b>,</p>
+          <p style="font-size: 20px; font-weight: bold; color: #4f46e5; background: #f1f5f9; padding: 10px 16px; border-radius: 6px; display: inline-block; letter-spacing: 2px;">Mã xác minh của bạn là: ${otp}</p>
+          <p style="font-size: 13px; color: #666;">Mã có hiệu lực trong 5 phút.</p>
+        `,
       });
     } catch (err: unknown) {
       await this.cacheManager.del(cacheKey);
