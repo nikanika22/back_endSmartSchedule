@@ -7,7 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { Student } from './entities/student.entity';
+import { Student, UserRole } from './entities/student.entity';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
 
@@ -118,6 +118,7 @@ export class StudentsService {
     return this.studentRepository.find({
       select: ['student_id', 'name', 'email', 'role'],
       order: { student_id: 'ASC' },
+      where: { role: UserRole.STUDENT }
     });
   }
 
