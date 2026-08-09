@@ -88,7 +88,9 @@ export class Schedule {
   @Column({ name: 'is_active', type: 'boolean', default: false })
   is_active!: boolean;
 
-  @OneToMany(() => ScheduleClass, (scheduleClass) => scheduleClass.schedule)
+  @OneToMany(() => ScheduleClass, (scheduleClass) => scheduleClass.schedule, {
+    cascade: ['insert'],
+  })
   scheduleClasses!: ScheduleClass[];
 
   @Column({

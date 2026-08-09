@@ -5,9 +5,8 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, DataSource } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Schedule } from './entities/schedule.entity';
-import { ScheduleClass } from './entities/schedule-classes.entity';
 import { Preference } from '../preferences/entities/preference.entity';
 import { Semester } from '../semesters/entities/semester.entity';
 import { ClassEntity } from '../classes/entities/class.entity';
@@ -20,8 +19,6 @@ import { SaveScheduleDto } from './dto/save-schedule.dto';
 @Injectable()
 export class SchedulesService {
   constructor(
-    private readonly dataSource: DataSource,
-
     private readonly engineService: EngineService,
     @InjectRepository(Schedule)
     private readonly ScheduleRepository: Repository<Schedule>,
@@ -48,7 +45,8 @@ export class SchedulesService {
   private readonly MAX_SOLUTIONS = 500;
 
   async detectConflict(student_id: string) {
-    const { classes, semester_id } = await this.getClassesByStudentId(student_id);
+    const { classes, semester_id } =
+      await this.getClassesByStudentId(student_id);
 
     const body = {
       student_id: student_id,
@@ -65,124 +63,102 @@ export class SchedulesService {
     const activeSemester = await this.getSemeter();
     const semester_id = activeSemester.semester_id;
 
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+    const schedule = await this.ScheduleRepository.findOne({
+      where: {
+        schedule_id: dto.schedule_id,
+        student_id: student_id,
+        semester_id: semester_id,
+        is_draft: true,
+      },
+      relations: ['scheduleClasses'],
+    });
 
-    try {
-      const scheduleRepository = queryRunner.manager.getRepository(Schedule);
-      const schedule = await scheduleRepository.findOne({
-        where: {
-          schedule_id: dto.schedule_id,
-          student_id: student_id,
-          semester_id: semester_id,
-          is_draft: true,
+    if (!schedule) {
+      throw new NotFoundException({
+        success: false,
+        error: {
+          code: 'SCHEDULE_NOT_FOUND',
+          message: 'Không tìm thấy thời khóa biểu',
         },
-        relations: ['scheduleClasses'],
       });
-
-      if (!schedule) {
-        throw new NotFoundException({
-          success: false,
-          error: {
-            code: 'SCHEDULE_NOT_FOUND',
-            message: 'Không tìm thấy thời khóa biểu',
-          },
-        });
-      }
-
-      const classIds = schedule.scheduleClasses.map(
-        (scheduleClass) => scheduleClass.class_id,
-      );
-
-      if (classIds.length === 0) {
-        throw new BadRequestException({
-          success: false,
-          error: {
-            code: 'SCHEDULE_HAS_NO_CLASSES',
-            message: 'Thời khóa biểu không có lớp để xác nhận.',
-          },
-        });
-      }
-
-      const selectedSchedules = await scheduleRepository.find({
-        where: {
-          student_id: student_id,
-          semester_id: semester_id,
-          is_selected: true,
-          is_active: true,
-        },
-        relations: ['scheduleClasses'],
-      });
-
-      const oldClassIds = selectedSchedules.flatMap((selectedSchedule) =>
-        selectedSchedule.scheduleClasses.map(
-          (scheduleClass) => scheduleClass.class_id,
-        ),
-      );
-      const allClassIds = [...new Set([...classIds, ...oldClassIds])];
-      const classRepository = queryRunner.manager.getRepository(ClassEntity);
-
-      const classes = await classRepository
-        .createQueryBuilder('class')
-        .setLock('pessimistic_write')
-        .where('class.class_id IN (:...classIds)', { classIds: allClassIds })
-        .orderBy('class.class_id', 'ASC')
-        .getMany();
-
-      const oldClassIdSet = new Set(oldClassIds);
-      const newClassIdSet = new Set(classIds);
-
-      for (const classEntity of classes) {
-        const wasSelected = oldClassIdSet.has(classEntity.class_id);
-        const willBeSelected = newClassIdSet.has(classEntity.class_id);
-
-        if (
-          !wasSelected &&
-          willBeSelected &&
-          classEntity.enrolled_count >= classEntity.max_students
-        ) {
-          throw new ConflictException({
-            success: false,
-            error: {
-              code: 'CLASS_IS_FULL',
-              message: `Lớp ${classEntity.class_id} đã đủ sĩ số. Vui lòng chọn phương án khác.`,
-            },
-          });
-        }
-
-        if (wasSelected && !willBeSelected) {
-          classEntity.enrolled_count -= 1;
-        }
-
-        if (!wasSelected && willBeSelected) {
-          classEntity.enrolled_count += 1;
-        }
-      }
-
-      await scheduleRepository.update(
-        {
-          student_id: student_id,
-          semester_id: semester_id,
-          is_selected: true,
-          is_active: true,
-        },
-        { is_selected: false, is_draft: true, is_active: false },
-      );
-
-      schedule.is_selected = true;
-      schedule.is_draft = false;
-      schedule.is_active = true;
-      await scheduleRepository.save(schedule);
-      await classRepository.save(classes);
-
-      await queryRunner.commitTransaction();
-    } catch (error) {
-      await queryRunner.rollbackTransaction();
-      throw error;
-    } finally {
-      await queryRunner.release();
     }
+
+    const classIds = schedule.scheduleClasses.map(
+      (scheduleClass) => scheduleClass.class_id,
+    );
+
+    if (classIds.length === 0) {
+      throw new BadRequestException({
+        success: false,
+        error: {
+          code: 'SCHEDULE_HAS_NO_CLASSES',
+          message: 'Thời khóa biểu không có lớp để xác nhận.',
+        },
+      });
+    }
+
+    const selectedSchedules = await this.ScheduleRepository.findOne({
+      where: {
+        student_id: student_id,
+        semester_id: semester_id,
+        is_selected: true,
+        is_active: true,
+      },
+      relations: ['scheduleClasses'],
+    });
+
+    const oldClassIds = selectedSchedules?.scheduleClasses.map((schduleClass) => schduleClass.class_id) ?? [];
+    const allClassIds = [...new Set([...classIds, ...oldClassIds])];
+
+    const oldClassIdSet = new Set(oldClassIds);
+    const newClassIdSet = new Set(classIds);
+
+    const classes = await this.ClassRepository.findBy({
+      class_id: In(allClassIds),
+    });
+
+    for (const classEntity of classes) {
+      const wasSelected = oldClassIdSet.has(classEntity.class_id);
+      const willBeSelected = newClassIdSet.has(classEntity.class_id);
+
+      if (
+        !wasSelected &&
+        willBeSelected &&
+        classEntity.enrolled_count >= classEntity.max_students
+      ) {
+        throw new ConflictException({
+          success: false,
+          error: {
+            code: 'CLASS_IS_FULL',
+            message: `Lớp ${classEntity.class_id} đã đủ sĩ số. Vui lòng chọn phương án khác.`,
+          },
+        });
+      }
+
+      if (wasSelected && !willBeSelected) {
+        classEntity.enrolled_count -= 1;
+      }
+
+      if (!wasSelected && willBeSelected) {
+        classEntity.enrolled_count += 1;
+      }
+    }
+
+    await this.ScheduleRepository.update(
+      {
+        student_id: student_id,
+        semester_id: semester_id,
+        is_selected: true,
+        is_active: true,
+      },
+      { is_selected: false, is_draft: true, is_active: false },
+    );
+
+    schedule.is_selected = true;
+    schedule.is_draft = false;
+    schedule.is_active = true;
+    await this.ScheduleRepository.save(schedule);
+    await this.ClassRepository.save(classes);
 
     return await this.findSelectedBySemester(student_id);
   }
@@ -224,59 +200,33 @@ export class SchedulesService {
       });
     }
 
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+    await this.ScheduleRepository.delete({
+      student_id: student_id,
+      semester_id: semester_id,
+      is_draft: true,
+    });
 
-    try {
-      await queryRunner.manager.delete(Schedule, {
+    for (const sched of responseData.schedules) {
+      const newSchedule = this.ScheduleRepository.create({
         student_id: student_id,
         semester_id: semester_id,
+        score_total: sched.score_total,
+        score_break: sched.score_break,
+        score_pref: sched.score_pref,
+        score_balance: sched.score_balance,
+        algorithm: sched.algorithm_tag,
         is_draft: true,
+        is_selected: false,
+        is_active: false,
+        scheduleClasses: (sched.classes ?? []).map((cls: any) => ({
+          class_id: cls.class_id,
+        })),
       });
 
-      const allScheduleClasses: ScheduleClass[] = [];
+      const savedSchedule = await this.ScheduleRepository.save(newSchedule);
 
-      for (const sched of responseData.schedules) {
-        const newSchedule = queryRunner.manager.create(Schedule, {
-          student_id: student_id,
-          semester_id: semester_id,
-          score_total: sched.score_total,
-          score_break: sched.score_break,
-          score_pref: sched.score_pref,
-          score_balance: sched.score_balance,
-          algorithm: sched.algorithm_tag,
-          is_draft: true,
-          is_selected: false,
-          is_active: false,
-        });
-
-        const savedSchedule = await queryRunner.manager.save(newSchedule);
-
-        // Gán schedule_id vừa tạo vào object để trả về cho Frontend
-        sched.schedule_id = savedSchedule.schedule_id;
-
-        if (sched.classes && sched.classes.length > 0) {
-          const scheduleClasses = sched.classes.map((cls: any) => {
-            return queryRunner.manager.create(ScheduleClass, {
-              schedule_id: savedSchedule.schedule_id,
-              class_id: cls.class_id,
-            });
-          });
-          allScheduleClasses.push(...scheduleClasses);
-        }
-      }
-
-      if (allScheduleClasses.length > 0) {
-        await queryRunner.manager.save(allScheduleClasses);
-      }
-
-      await queryRunner.commitTransaction();
-    } catch (error) {
-      await queryRunner.rollbackTransaction();
-      throw error;
-    } finally {
-      await queryRunner.release();
+      // Gán schedule_id vừa tạo vào object để trả về cho Frontend
+      sched.schedule_id = savedSchedule.schedule_id;
     }
 
     const activeSemester = await this.getSemeter();
