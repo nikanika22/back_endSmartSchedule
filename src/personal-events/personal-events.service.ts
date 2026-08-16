@@ -49,6 +49,17 @@ export class PersonalEventsService {
       createPersonalEventDto.start_date,
       createPersonalEventDto.end_date,
     );
+
+    if (createPersonalEventDto.end_time <= createPersonalEventDto.start_time) {
+      throw new BadRequestException({
+        success: false,
+        error: {
+          code: 'TIME_NOT_VALID',
+          message: 'Thời gian không hợp lệ',
+        },
+      });
+    }
+
     await this.checkOverlap(student_id, createPersonalEventDto);
 
     const personalEvent = this.personalEventRepository.create({
@@ -100,6 +111,19 @@ export class PersonalEventsService {
     const nextEvent = { ...event, ...updatePersonalEventDto };
 
     this.validateDateRange(nextEvent.start_date, nextEvent.end_date);
+
+    if (updatePersonalEventDto.start_time && updatePersonalEventDto.end_time) {
+      if (updatePersonalEventDto.end_time <= updatePersonalEventDto.start_time) {
+        throw new BadRequestException({
+          success: false,
+          error: {
+            code: 'TIME_NOT_VALID',
+            message: 'Thời gian không hợp lệ',
+          },
+        });
+      }
+    }
+
     await this.checkOverlap(student_id, nextEvent, id);
 
     Object.assign(event, updatePersonalEventDto);

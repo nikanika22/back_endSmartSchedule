@@ -38,6 +38,16 @@ export class ClassesService {
             });
         }
 
+        if (!createClassDto.class_id.startsWith(`${createClassDto.course_id}_`)) {
+            throw new BadRequestException({
+                success: false,
+                error: {
+                    code: 'CLASSID_NOT_VALID',
+                    message: 'Mã lớp phải có tiền tố là mã của môn học',
+                },
+            });
+        }
+
         const semester = await this.semesterRepository.findOne({
             where: { semester_id: createClassDto.semester_id },
         });
@@ -133,13 +143,47 @@ export class ClassesService {
         await this.findOne(id);
 
         if (updateClassDto.course_id) {
-            const course = await this.courseRepository.findOne({ where: { course_id: updateClassDto.course_id } });
+            const course = await this.courseRepository.findOne({
+                where: { course_id: updateClassDto.course_id },
+            });
             if (!course) {
                 throw new BadRequestException({
                     success: false,
                     error: {
                         code: 'COURSE_NOT_FOUND',
                         message: `Không tìm thấy môn học với mã: ${updateClassDto.course_id}`,
+                    },
+                });
+            }
+        }
+
+        if (updateClassDto.semester_id) {
+            const semester = await this.semesterRepository.findOne({
+                where: { semester_id: updateClassDto.semester_id },
+            });
+            if (!semester) {
+                throw new BadRequestException({
+                    success: false,
+                    error: {
+                        code: 'SEMESTER_NOT_FOUND',
+                        message: `Không tìm thấy kỳ học với mã: ${updateClassDto.semester_id}`,
+                    },
+                });
+            }
+        }
+
+        if (updateClassDto.max_students) {
+            const classExisting = await this.classRepository.findOne({
+                where: { class_id: id },
+            });
+
+            const enrolled_count = classExisting?.enrolled_count ?? 0;
+            if (enrolled_count > updateClassDto.max_students) {
+                throw new BadRequestException({
+                    success: false,
+                    error: {
+                        code: 'MAX_STUDENT_INVALID',
+                        message: 'Sĩ số lớp không thể nhỏ hơn số lượt đăng ký hiện tại',
                     },
                 });
             }

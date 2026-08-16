@@ -134,6 +134,12 @@ export class UploadService {
                 continue;
             }
 
+            const courseRegex = /^CS\d{5}$/
+            if (!courseRegex.test(course_id)) {
+                errors.push(`Hàng ${rowNumber} mã môn học không đúng định dạng`)
+                continue;
+            }
+
             if (seenCourseIds.has(course_id)) {
                 errors.push(`Hàng ${rowNumber} bị trùng lặp khóa học (Mã: ${course_id}) trong chính file Excel`)
                 continue;
@@ -248,6 +254,11 @@ export class UploadService {
                 continue;
             }
 
+            if (start_time > end_time) {
+                errors.push(`Hàng ${rowNumber} thời gian không hợp lệ`);
+                continue;
+            }
+
             if (isNaN(dayInt) || dayInt < 2 || dayInt > 8){
                 errors.push(`Hàng ${rowNumber} ngày học không hợp lệ`)
                 continue;
@@ -255,6 +266,17 @@ export class UploadService {
 
             if (isNaN(numStudentsInt) || numStudentsInt <= 0){
                 errors.push(`Hàng ${rowNumber} số lượng sinh viên không hợp lệ`)
+                continue;
+            }
+
+            const classRegex = /^CS\d{5}_\d{2}$/
+            if (!classRegex.test(class_id)) {
+                errors.push(`Hàng ${rowNumber} mã lớp học không đúng định dạng`)
+                continue;
+            }
+
+            if (!class_id.startsWith(`${course_id}_`)) {
+                errors.push(`Hàng ${rowNumber} mã lớp phải có tiền tố là mã môn học (VD: CS03007_01)`);
                 continue;
             }
 
