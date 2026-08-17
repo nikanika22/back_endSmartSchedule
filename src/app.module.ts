@@ -24,6 +24,7 @@ import { SchedulesModule } from './schedules/schedules.module';
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',
+      schema: 'public',
       ...(process.env.DATABASE_URL
         ? {
             url: process.env.DATABASE_URL,
