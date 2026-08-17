@@ -170,7 +170,17 @@ export class StudentsService {
     return await this.studentRepository.save(student);
   }
 
-  async remove(id: number) {
-    return this.studentRepository.delete(id);
+  async remove(id: string) {
+    const student = await this.studentRepository.findOneBy({ student_id: id });
+    if (!student) {
+      throw new ConflictException({
+        success: false,
+        error: {
+          code: 'STUDENT_NOT_FOUND',
+          message: 'Không tìm thấy sinh viên.',
+        },
+      });
+    }
+    this.studentRepository.delete(student);
   }
 }
