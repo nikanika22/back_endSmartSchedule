@@ -181,6 +181,6 @@ export class StudentsService {
         },
       });
     }
-    this.studentRepository.delete(student);
+    return this.studentRepository.remove(student);
   }
 }
